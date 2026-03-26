@@ -13,6 +13,7 @@ import Matches from './pages/Matches';
 import Chat from './pages/Chat';
 import Discover from './pages/Discover';
 import RandomVideoChat from './pages/RandomVideoChat';
+import AuthCallback from './pages/AuthCallback';
 
 const ProtectedRoute = ({ children }) => {
   const { token, isLoading } = useAuthStore();
@@ -118,6 +119,10 @@ function App() {
                 <LandingPage />
               </PublicRoute>
             } 
+          />
+          <Route 
+            path="/auth/callback" 
+            element={<AuthCallback />} 
           />
           <Route 
             path="*" 

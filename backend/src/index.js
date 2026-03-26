@@ -5,8 +5,11 @@ import { Server } from 'socket.io';
 import mongoose from 'mongoose';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import session from 'express-session';
+import cookieSession from 'cookie-session';
 
 import config from './config/index.js';
+import passport from './config/passport.js';
 import { authRoutes, userRoutes, matchRoutes, messageRoutes } from './routes/index.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { initializeSocket } from './socket/index.js';
@@ -29,8 +32,20 @@ app.use(cors({
   origin: config.frontendUrl,
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Cookie session for OAuth
+app.use(cookieSession({
+  name: 'dating-session',
+  keys: [config.jwtSecret],
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
+
+// Initialize passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
@@ -66,7 +81,6 @@ const startServer = async () => {
 startServer();
 
 export { app, httpServer, io };
-
 /*
 GIẢI THÍCH FILE
 =====================
@@ -102,3 +116,4 @@ File này được chạy bằng lệnh: npm start hoặc node src/index.js
 Health check endpoint: GET /api/health
 Socket.io được khởi tạo sau khi app sẵn sàng để handle connections.
 */
+

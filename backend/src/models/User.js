@@ -1,7 +1,14 @@
+/**
+ * User Model - Schema mới
+ * Hỗ trợ: passwordHash, loginMethod, facebookId, googleId
+ * Backward compatible với field "password"
+ */
+
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
+  // Thông tin đăng nhập
   username: {
     type: String,
     required: [true, 'Username is required'],
@@ -18,12 +25,37 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
   },
+  
+  // Schema mới: passwordHash
+  passwordHash: {
+    type: String,
+    select: false // Mặc định không select password
+  },
+  
+  // Backward compatible: hỗ trợ cả "password" (sẽ được migrate)
   password: {
     type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
     select: false
   },
+  
+  // Social login
+  facebookId: {
+    type: String,
+    sparse: true,
+    default: null
+  },
+  googleId: {
+    type: String,
+    sparse: true,
+    default: null
+  },
+  loginMethod: {
+    type: String,
+    enum: ['email', 'facebook', 'google'],
+    default: 'email'
+  },
+  
+  // Thông tin cá nhân
   fullName: {
     type: String,
     trim: true,
@@ -36,11 +68,13 @@ const userSchema = new mongoose.Schema({
   },
   gender: {
     type: String,
-    enum: ['male', 'female', 'other']
+    enum: ['male', 'female', 'other', ''],
+    default: ''
   },
   bio: {
     type: String,
-    maxlength: [500, 'Bio cannot exceed 500 characters']
+    maxlength: [500, 'Bio cannot exceed 500 characters'],
+    default: ''
   },
   avatar: {
     type: String,
@@ -84,12 +118,8 @@ const userSchema = new mongoose.Schema({
     enum: ['relationship', 'friendship', 'casual', ''],
     default: ''
   },
-  profileCompletion: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100
-  },
+  
+  // Preferences
   preferences: {
     minAge: {
       type: Number,
@@ -101,10 +131,12 @@ const userSchema = new mongoose.Schema({
     },
     gender: {
       type: String,
-      enum: ['male', 'female', 'both'],
+      enum: ['male', 'female', 'both', ''],
       default: 'both'
     }
   },
+  
+  // Trạng thái online
   isOnline: {
     type: Boolean,
     default: false
@@ -113,6 +145,45 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  
+  // Role & Security
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user'
+  },
+  lastLogin: {
+    type: Date
+  },
+  failedAttempts: {
+    type: Number,
+    default: 0
+  },
+  isLocked: {
+    type: Boolean,
+    default: false
+  },
+  
+  // OTP & Verification
+  otpCode: String,
+  otpExpiresAt: Date,
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  
+  // KYC
+  kycStatus: {
+    type: String,
+    enum: ['unverified', 'pending', 'verified'],
+    default: 'unverified'
+  },
+  isVerifiedProfile: {
+    type: Boolean,
+    default: false
+  },
+  
+  // Fake account detection (từ schema cũ)
   isFake: {
     type: Boolean,
     default: false
@@ -120,24 +191,53 @@ const userSchema = new mongoose.Schema({
   fakeScore: {
     type: Number,
     default: 0
+  },
+  
+  // Status
+  status: {
+    type: String,
+    enum: ['active', 'banned', 'inactive'],
+    default: 'active'
+  },
+  
+  // Profile completion (computed)
+  profileCompletion: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
   }
 }, {
   timestamps: true
 });
 
+// Indexes
 userSchema.index({ username: 'text' });
 userSchema.index({ email: 1 });
+userSchema.index({ facebookId: 1 });
+userSchema.index({ googleId: 1 });
 
+// Virtual field để backward compatibility
+userSchema.virtual('password_field').get(function() {
+  return this.passwordHash || this.password;
+});
+
+// Method so sánh password
 userSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  const hashToCompare = this.passwordHash || this.password;
+  if (!hashToCompare) return false;
+  return await bcrypt.compare(enteredPassword, hashToCompare);
 };
 
+// Transform output - loại bỏ password
 userSchema.methods.toJSON = function() {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.passwordHash;
   return obj;
 };
 
+// Tính profile completion
 userSchema.methods.calculateProfileCompletion = function() {
   const user = this;
   let score = 0;
@@ -155,71 +255,43 @@ userSchema.methods.calculateProfileCompletion = function() {
   return Math.min(score, 100);
 };
 
+// Pre-save: hash password và tính profile completion
 userSchema.pre('save', async function(next) {
-  if (this.isModified('password')) {
+  // Hash password mới
+  if (this.isModified('password') || (this.isModified('passwordHash') && this.passwordHash && !this.passwordHash.startsWith('$2'))) {
     const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+    // Hỗ trợ cả password và passwordHash
+    const pass = this.passwordHash || this.password;
+    if (pass && !pass.startsWith('$2')) {
+      this.passwordHash = await bcrypt.hash(pass, salt);
+    }
   }
-  this.profileCompletion = this.calculateProfileCompletion();
+  
+  // Tính profile completion
+  if (!this.profileCompletion || this.profileCompletion === 0) {
+    this.profileCompletion = this.calculateProfileCompletion();
+  }
+  
   next();
 });
 
-userSchema.pre('findOneAndUpdate', async function(next) {
-  const update = this.getUpdate();
-  if (update.$set) {
-    update.$set.profileCompletion = calculateProfileCompletionFromObject(update.$set);
-  }
-  next();
-});
+// Static method: tìm user bằng email hoặc username
+userSchema.statics.findByEmailOrUsername = function(identifier) {
+  return this.findOne({
+    $or: [
+      { email: identifier.toLowerCase() },
+      { username: identifier }
+    ]
+  }).select('+password +passwordHash');
+};
 
-function calculateProfileCompletionFromObject(user) {
-  let score = 0;
+// Static method: tìm user bằng social ID
+userSchema.statics.findByFacebookId = function(facebookId) {
+  return this.findOne({ facebookId });
+};
 
-  if (user.avatar && user.avatar.trim() !== '') score += 20;
-  if (user.bio && user.bio.trim() !== '') score += 10;
-  if (user.age) score += 10;
-  if (user.location && user.location.trim() !== '') score += 10;
-  if (user.interests && user.interests.length > 0) score += 10;
-  if (user.photos && user.photos.length >= 2) score += 20;
-  if (user.occupation && user.occupation.trim() !== '') score += 10;
-  if (user.education && user.education.trim() !== '') score += 10;
-  if (user.gender && user.lookingFor) score += 10;
-
-  return Math.min(score, 100);
-}
+userSchema.statics.findByGoogleId = function(googleId) {
+  return this.findOne({ googleId });
+};
 
 export default mongoose.model('User', userSchema);
-
-/*
-GIẢI THÍCH FILE
-=====================
-
-Mục đích:
-File này định nghĩa schema User cho MongoDB sử dụng Mongoose.
-Lưu trữ thông tin người dùng bao gồm: thông tin cá nhân, preferences,
-trạng thái online/offline, và các trường cho fake account detection.
-
-Các field chính:
-- username, email, password: Thông tin đăng nhập
-- fullName, age, gender, bio, avatar: Thông tin profile
-- interests: Mảng string lưu sở thích
-- location: Địa điểm
-- preferences: Object chứa preferences tìm kiếm (minAge, maxAge, gender)
-- isOnline, lastSeen: Trạng thái hoạt động
-- isFake, fakeScore: Trường cho fake account detection (AI scoring)
-
-Các methods:
-- matchPassword(): So sánh password với hash
-- toJSON(): Loại bỏ password khi convert sang JSON
-
-Indexes:
-- username: text index cho tìm kiếm
-- email: unique index
-
-Luồng hoạt động:
-Controller → Model → MongoDB → Response
-
-Ghi chú:
-File này được sử dụng bởi tất cả các controllers (auth, user, match, message, socket).
-Pre-save middleware tự động hash password khi tạo/cập nhật user.
-*/

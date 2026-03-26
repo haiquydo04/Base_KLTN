@@ -12,6 +12,8 @@ const Login = () => {
     password: '',
   });
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (error) clearError();
@@ -25,6 +27,14 @@ const Login = () => {
     } catch (err) {
       // Error handled by store
     }
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = `${API_URL}/api/auth/google`;
+  };
+
+  const handleFacebookLogin = () => {
+    window.location.href = `${API_URL}/api/auth/facebook`;
   };
 
   return (
@@ -159,11 +169,19 @@ const Login = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <button type="button" className="h-10 rounded-full border border-gray-200 text-sm text-gray-700 font-semibold hover:bg-gray-50 inline-flex items-center justify-center gap-2">
+                  <button 
+                    type="button" 
+                    onClick={handleGoogleLogin}
+                    className="h-10 rounded-full border border-gray-200 text-sm text-gray-700 font-semibold hover:bg-gray-50 inline-flex items-center justify-center gap-2"
+                  >
                     <FontAwesomeIcon icon={faGoogle} className="text-base text-[#DB4437]" />
                     <span>Google</span>
                   </button>
-                  <button type="button" className="h-10 rounded-full border border-gray-200 text-sm text-gray-700 font-semibold hover:bg-gray-50 inline-flex items-center justify-center gap-2">
+                  <button 
+                    type="button" 
+                    onClick={handleFacebookLogin}
+                    className="h-10 rounded-full border border-gray-200 text-sm text-gray-700 font-semibold hover:bg-gray-50 inline-flex items-center justify-center gap-2"
+                  >
                     <FontAwesomeIcon icon={faFacebookF} className="text-base text-[#1877F2]" />
                     <span>Facebook</span>
                   </button>

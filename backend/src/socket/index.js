@@ -3,7 +3,7 @@ import config from '../config/index.js';
 import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Match from '../models/Match.js';
-import VideoSession from '../models/VideoSession.js';
+import VideoCall from '../models/VideoCall.js';
 
 let waitingUsers = [];
 
@@ -85,13 +85,16 @@ export const initializeSocket = (io) => {
 
         const message = await Message.create({
           matchId,
-          sender: socket.user._id,
+          senderId: socket.user._id,
+          sender: socket.user._id, // backward compatible
           content,
-          messageType: type || 'text'
+          messageType: type || 'text',
+          isRead: false,
+          status: 'sent'
         });
 
         const populatedMessage = await Message.findById(message._id)
-          .populate('sender', 'username avatar');
+          .populate('sender senderId', 'username avatar');
 
         match.lastActivity = new Date();
         await match.save();
@@ -229,8 +232,9 @@ export const initializeSocket = (io) => {
           // Found a partner - create video session
           waitingUsers = waitingUsers.filter(id => id !== partnerId);
           
-          const session = await VideoSession.create({
-            participants: [currentUserId, partnerId],
+          const session = await VideoCall.create({
+            callerId: currentUserId,
+            receiverId: partnerId,
             sessionType: 'random',
             status: 'connected',
             startedAt: new Date()
@@ -278,7 +282,7 @@ export const initializeSocket = (io) => {
         
         // End current session
         if (sessionId) {
-          await VideoSession.findByIdAndUpdate(sessionId, {
+          await VideoCall.findByIdAndUpdate(sessionId, {
             status: 'ended',
             endedAt: new Date()
           });
@@ -297,8 +301,9 @@ export const initializeSocket = (io) => {
           if (partnerId) {
             waitingUsers = waitingUsers.filter(id => id !== partnerId);
             
-            const session = await VideoSession.create({
-              participants: [currentUserId, partnerId],
+            const session = await VideoCall.create({
+              callerId: currentUserId,
+              receiverId: partnerId,
               sessionType: 'random',
               status: 'connected',
               startedAt: new Date()
@@ -334,7 +339,7 @@ export const initializeSocket = (io) => {
         const { sessionId, partnerId } = data;
         
         if (sessionId) {
-          const session = await VideoSession.findById(sessionId);
+          const session = await VideoCall.findById(sessionId);
           if (session) {
             session.status = 'ended';
             session.endedAt = new Date();

@@ -4,7 +4,8 @@ import {
   passUser, 
   getLikes, 
   getMutualLikes,
-  unmatch 
+  unmatch,
+  getSwipeHistory
 } from '../controllers/matchController.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -14,6 +15,7 @@ router.post('/like', authenticate, likeUser);
 router.post('/pass', authenticate, passUser);
 router.get('/likes', authenticate, getLikes);
 router.get('/mutual', authenticate, getMutualLikes);
+router.get('/swipes', authenticate, getSwipeHistory);
 router.delete('/:matchId', authenticate, unmatch);
 
 export default router;
