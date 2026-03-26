@@ -1,6 +1,13 @@
+/**
+ * Message Controller - Cập nhật cho schema mới
+ * Backward compatible: hỗ trợ cả matchId và conversationId
+ */
+
 import Message from '../models/Message.js';
 import Match from '../models/Match.js';
 import User from '../models/User.js';
+import Conversation from '../models/Conversation.js';
+import ConversationMember from '../models/ConversationMember.js';
 
 export const getMessages = async (req, res, next) => {
   try {
@@ -9,6 +16,7 @@ export const getMessages = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
+    // Kiểm tra quyền truy cập qua Match
     const match = await Match.findById(matchId);
 
     if (!match) {
@@ -18,24 +26,37 @@ export const getMessages = async (req, res, next) => {
       });
     }
 
-    if (!match.users.includes(req.user._id)) {
+    // Kiểm tra user có trong match
+    if (!match.hasUser(req.user._id)) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to view messages'
       });
     }
 
-    const messages = await Message.find({ matchId })
-      .populate('sender', 'username avatar')
+    // Lấy messages theo matchId (backward compatible)
+    // Hoặc theo conversationId nếu có
+    let conversationId = null;
+    if (match.conversationId) {
+      conversationId = match.conversationId;
+    }
+
+    const query = conversationId
+      ? { conversationId }
+      : { matchId }; // fallback to matchId
+
+    const messages = await Message.find(query)
+      .populate('sender senderId', 'username avatar')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Message.countDocuments({ matchId });
+    const total = await Message.countDocuments(query);
 
+    // Đánh dấu đã đọc
     await Message.updateMany(
-      { matchId, sender: { $ne: req.user._id }, isRead: false },
-      { isRead: true }
+      { ...query, sender: { $ne: req.user._id }, senderId: { $ne: req.user._id }, isRead: false },
+      { isRead: true, status: 'seen' }
     );
 
     res.json({
@@ -56,8 +77,9 @@ export const getMessages = async (req, res, next) => {
 export const sendMessage = async (req, res, next) => {
   try {
     const { matchId } = req.params;
-    const { content, image, messageType } = req.body;
+    const { content, image, mediaUrl, messageType } = req.body;
 
+    // Kiểm tra match tồn tại
     const match = await Match.findById(matchId);
 
     if (!match) {
@@ -67,23 +89,42 @@ export const sendMessage = async (req, res, next) => {
       });
     }
 
-    if (!match.users.includes(req.user._id)) {
+    // Kiểm tra user có trong match
+    if (!match.hasUser(req.user._id)) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to send messages'
       });
     }
 
-    const message = await Message.create({
-      matchId,
-      sender: req.user._id,
+    // Tạo message mới
+    const messageData = {
+      senderId: req.user._id,
+      sender: req.user._id, // backward compatible
       content,
-      image,
-      messageType: messageType || 'text'
-    });
+      messageType: messageType || 'text',
+      isRead: false,
+      status: 'sent'
+    };
 
-    await message.populate('sender', 'username avatar');
+    // Hỗ trợ cả image và mediaUrl
+    if (image || mediaUrl) {
+      messageData.image = image || mediaUrl;
+      messageData.mediaUrl = mediaUrl || image;
+      messageData.messageType = 'image';
+    }
 
+    // Nếu match có conversationId thì dùng conversationId
+    if (match.conversationId) {
+      messageData.conversationId = match.conversationId;
+    } else {
+      messageData.matchId = match._id; // backward compatible
+    }
+
+    const message = await Message.create(messageData);
+    await message.populate('sender senderId', 'username avatar');
+
+    // Cập nhật lastActivity của match
     match.lastActivity = new Date();
     await match.save();
 
@@ -98,12 +139,8 @@ export const sendMessage = async (req, res, next) => {
 
 export const getConversations = async (req, res, next) => {
   try {
-    const matches = await Match.find({
-      users: req.user._id,
-      isActive: true
-    })
-    .populate('users', 'username avatar isOnline lastSeen')
-    .sort({ lastActivity: -1 });
+    // Lấy tất cả match của user
+    const matches = await Match.findUserMatches(req.user._id);
 
     if (matches.length === 0) {
       return res.json({
@@ -114,6 +151,7 @@ export const getConversations = async (req, res, next) => {
 
     const matchIds = matches.map(m => m._id);
 
+    // Lấy last message cho mỗi match
     const lastMessages = await Message.aggregate([
       { $match: { matchId: { $in: matchIds } } },
       { $sort: { createdAt: -1 } },
@@ -129,11 +167,13 @@ export const getConversations = async (req, res, next) => {
       lastMessages.map(m => [m._id.toString(), m.lastMessage])
     );
 
+    // Đếm unread messages
     const unreadCounts = await Message.aggregate([
       {
         $match: {
           matchId: { $in: matchIds },
           sender: { $ne: req.user._id },
+          senderId: { $ne: req.user._id },
           isRead: false
         }
       },
@@ -149,10 +189,12 @@ export const getConversations = async (req, res, next) => {
       unreadCounts.map(u => [u._id.toString(), u.count])
     );
 
+    // Lấy thông tin sender của last messages
     const senderIds = [...new Set(
       lastMessages
-        .map(m => m.lastMessage?.sender)
+        .map(m => m.lastMessage?.senderId || m.lastMessage?.sender)
         .filter(Boolean)
+        .map(id => id.toString())
     )];
 
     const senders = await User.find({ _id: { $in: senderIds } })
@@ -163,28 +205,34 @@ export const getConversations = async (req, res, next) => {
       senders.map(s => [s._id.toString(), s])
     );
 
+    // Build conversation list
     const conversations = matches.map(match => {
-      const otherUser = match.users.find(
-        u => u._id.toString() !== req.user._id.toString()
-      );
-
+      const otherUserId = match.getOtherUser(req.user._id);
       const lastMessage = lastMessageMap.get(match._id.toString());
-      if (lastMessage && senderMap.has(lastMessage.sender?.toString())) {
-        lastMessage.sender = senderMap.get(lastMessage.sender.toString());
+
+      if (lastMessage && senderMap.has((lastMessage.senderId || lastMessage.sender)?.toString())) {
+        lastMessage.sender = senderMap.get((lastMessage.senderId || lastMessage.sender).toString());
       }
 
       return {
         matchId: match._id,
-        user: otherUser,
+        userId: otherUserId,
         lastMessage: lastMessage || null,
         unreadCount: unreadCountMap.get(match._id.toString()) || 0,
-        lastActivity: match.lastActivity
+        lastActivity: match.lastActivity,
+        matchedAt: match.matchedAt || match.createdAt
       };
+    });
+
+    // Populate user info
+    const populatedConversations = await Match.populate(conversations, {
+      path: 'userId',
+      select: 'username avatar isOnline lastSeen -password -passwordHash'
     });
 
     res.json({
       success: true,
-      conversations
+      conversations: populatedConversations
     });
   } catch (error) {
     next(error);
@@ -195,6 +243,7 @@ export const markAsRead = async (req, res, next) => {
   try {
     const { matchId } = req.params;
 
+    // Kiểm tra match tồn tại
     const match = await Match.findById(matchId);
 
     if (!match) {
@@ -204,7 +253,8 @@ export const markAsRead = async (req, res, next) => {
       });
     }
 
-    if (!match.users.includes(req.user._id)) {
+    // Kiểm tra user có trong match
+    if (!match.hasUser(req.user._id)) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized'
@@ -212,8 +262,8 @@ export const markAsRead = async (req, res, next) => {
     }
 
     await Message.updateMany(
-      { matchId, sender: { $ne: req.user._id }, isRead: false },
-      { isRead: true }
+      { matchId, sender: { $ne: req.user._id }, senderId: { $ne: req.user._id }, isRead: false },
+      { isRead: true, status: 'seen' }
     );
 
     res.json({
@@ -224,31 +274,3 @@ export const markAsRead = async (req, res, next) => {
     next(error);
   }
 };
-
-/*
-GIẢI THÍCH FILE
-=====================
-
-Mục đích:
-File này chứa các controller xử lý các chức năng liên quan đến tin nhắn:
-lấy tin nhắn theo match, gửi tin nhắn, lấy danh sáchvà đánh dấu tin nhắn conversations,
- đã đọc.
-
-Các function chính:
-- getMessages(): Lấy danh sách tin nhắn của một match với phân trang.
-  Tự động đánh dấu tất cả tin nhắn chưa đọc là đã đọc.
-- sendMessage(): Gửi tin nhắn mới, cập nhật lastActivity của match.
-- getConversations(): Lấy danh sách tất cả các cuộc trò chuyện.
-  Đã được tối ưu sử dụng MongoDB aggregation để tránh N+1 query.
-- markAsRead(): Đánh dấu tất cả tin nhắn trong match là đã đọc.
-
-Luồng hoạt động:
-Client → GET/POST /api/messages/:matchId → Controller xử lý
-→ Kiểm tra quyền (là thành viên của match) → Model (Message, Match)
-→ MongoDB → Response
-
-Ghi chú:
-File này được sử dụng bởi messageRoutes.js.
-getConversations sử dụng aggregation pipeline để lấy lastMessage và unreadCount
-cho tất cả matches trong một query duy nhất thay vì N+1 queries.
-*/

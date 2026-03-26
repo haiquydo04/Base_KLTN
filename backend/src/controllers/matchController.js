@@ -1,5 +1,11 @@
+/**
+ * Match Controller - Cập nhật cho schema mới (PB09)
+ * Sử dụng Swipe model để lưu tương tác like/pass
+ */
+
 import User from '../models/User.js';
 import Match from '../models/Match.js';
+import Swipe from '../models/Swipe.js';
 
 export const likeUser = async (req, res, next) => {
   try {
@@ -21,32 +27,44 @@ export const likeUser = async (req, res, next) => {
       });
     }
 
-    const existingMatch = await Match.findMatch(currentUserId, userId);
-    
-    if (existingMatch) {
-      if (!existingMatch.users.includes(currentUserId)) {
-        existingMatch.users.push(currentUserId);
-        await existingMatch.save();
+    // Tạo swipe record
+    await Swipe.findOneAndUpdate(
+      { swiperId: currentUserId, swipedId: userId },
+      { swiperId: currentUserId, swipedId: userId, action: 'like' },
+      { upsert: true, new: true }
+    );
+
+    // Kiểm tra mutual like
+    const mutualLike = await Swipe.isMutualLike(currentUserId, userId);
+
+    if (mutualLike) {
+      // Tạo match nếu chưa có
+      let match = await Match.findMatch(currentUserId, userId);
+
+      if (!match) {
+        match = await Match.create({
+          user1Id: currentUserId,
+          user2Id: userId,
+          matchedAt: new Date()
+        });
+        await match.populate('user1Id user2Id', '-password -passwordHash');
+      } else {
+        match.isActive = true;
+        match.matchedAt = new Date();
+        await match.save();
       }
-      
+
       return res.json({
         success: true,
         matched: true,
-        match: existingMatch,
+        match,
         message: 'You have a new match!'
       });
     }
 
-    const newMatch = await Match.create({
-      users: [currentUserId, userId]
-    });
-
-    await newMatch.populate('users', '-password');
-
-    res.status(201).json({
+    res.json({
       success: true,
       matched: false,
-      match: newMatch,
       message: 'User liked successfully'
     });
   } catch (error) {
@@ -57,6 +75,14 @@ export const likeUser = async (req, res, next) => {
 export const passUser = async (req, res, next) => {
   try {
     const { userId } = req.body;
+    const currentUserId = req.user._id;
+
+    // Tạo swipe record với action = pass
+    await Swipe.findOneAndUpdate(
+      { swiperId: currentUserId, swipedId: userId },
+      { swiperId: currentUserId, swipedId: userId, action: 'pass' },
+      { upsert: true, new: true }
+    );
 
     res.json({
       success: true,
@@ -69,18 +95,11 @@ export const passUser = async (req, res, next) => {
 
 export const getLikes = async (req, res, next) => {
   try {
-    const matches = await Match.find({
-      users: req.user._id
-    }).populate('users', '-password');
+    // Lấy danh sách user đã like (dùng Swipe)
+    const likedSwipes = await Swipe.getLikedUsers(req.user._id);
 
-    const likedUsers = matches
-      .filter(match => match.users.length >= 1)
-      .map(match => {
-        const otherUser = match.users.find(
-          user => user._id.toString() !== req.user._id.toString()
-        );
-        return otherUser;
-      })
+    const likedUsers = likedSwipes
+      .map(swipe => swipe.swipedId)
       .filter(Boolean);
 
     res.json({
@@ -94,28 +113,32 @@ export const getLikes = async (req, res, next) => {
 
 export const getMutualLikes = async (req, res, next) => {
   try {
-    const matches = await Match.find({
-      users: req.user._id,
-      isActive: true
-    }).populate('users', '-password');
+    // Lấy tất cả match của user (2 chiều đều like nhau)
+    const matches = await Match.findUserMatches(req.user._id);
 
-    const mutualMatches = matches.filter(match => match.users.length === 2);
+    const mutualMatches = matches.filter(match => match.isActive !== false);
 
     const matchesWithOtherUser = mutualMatches.map(match => {
-      const otherUser = match.users.find(
-        user => user._id.toString() !== req.user._id.toString()
-      );
+      const otherUserId = match.getOtherUser(req.user._id);
       return {
         _id: match._id,
-        user: otherUser,
+        matchId: match._id,
+        userId: otherUserId,
+        matchedAt: match.matchedAt || match.createdAt,
         lastActivity: match.lastActivity,
         createdAt: match.createdAt
       };
     });
 
+    // Populate user info
+    const populatedMatches = await Match.populate(matchesWithOtherUser, {
+      path: 'userId',
+      select: '-password -passwordHash'
+    });
+
     res.json({
       success: true,
-      matches: matchesWithOtherUser
+      matches: populatedMatches
     });
   } catch (error) {
     next(error);
@@ -135,7 +158,8 @@ export const unmatch = async (req, res, next) => {
       });
     }
 
-    if (!match.users.includes(req.user._id)) {
+    // Kiểm tra user có trong match không
+    if (!match.hasUser(req.user._id)) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to unmatch'
@@ -154,31 +178,19 @@ export const unmatch = async (req, res, next) => {
   }
 };
 
-/*
-GIẢI THÍCH FILE
-=====================
+// Get swipe history (PB09)
+export const getSwipeHistory = async (req, res, next) => {
+  try {
+    const swipes = await Swipe.find({ swiperId: req.user._id })
+      .populate('swipedId', '-password -passwordHash')
+      .sort({ createdAt: -1 })
+      .limit(100);
 
-Mục đích:
-File này chứa các controller xử lý các chức năng liên quan đến match (đôi):
-like user, pass user (bỏ qua), lấy danh sách user đã like,
-lấy danh sách mutual matches (2 người đều like nhau), và unmatch.
-
-Các function chính:
-- likeUser(): Xử lý like một user.
-  - Nếu user đã like mình trước đó → tạo mutual match (matched: true)
-  - Nếu chưa → tạo match mới (matched: false)
-- passUser(): Xử lý khi user bỏ qua một profile (hiện tại chỉ trả về success)
-- getLikes(): Lấy danh sách tất cả user mà current user đã like
-- getMutualLikes(): Lấy danh sách mutual matches (những người đã match với mình)
-- unmatch(): Hủy match với một user (đặt isActive = false)
-
-Luồng hoạt động:
-Client → POST /api/match/like → Controller xử lý
-→ Kiểm tra user tồn tại → Kiểm tra match đã tồn tại chưa
-→ Tạo/Cập nhật Match → Response
-
-Ghi chú:
-File này được sử dụng bởi matchRoutes.js.
-likeUser kiểm tra 2 chiều: A like B tạo match, sau đó B like A tạo mutual match.
-getMutualLikes lọc các match có users.length === 2 (2 người).
-*/
+    res.json({
+      success: true,
+      swipes
+    });
+  } catch (error) {
+    next(error);
+  }
+};
