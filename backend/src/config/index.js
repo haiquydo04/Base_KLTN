@@ -9,5 +9,21 @@ export default {
   jwtExpire: process.env.JWT_EXPIRE || '7d',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE) || 5242880,
-  uploadPath: process.env.UPLOAD_PATH || './uploads'
+  uploadPath: process.env.UPLOAD_PATH || './uploads',
+  
+  // Google OAuth
+  google: {
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
+    profileFields: ['id', 'displayName', 'emails', 'photos']
+  },
+  
+  // Facebook OAuth
+  facebook: {
+    clientID: process.env.FACEBOOK_APP_ID,
+    clientSecret: process.env.FACEBOOK_APP_SECRET,
+    callbackURL: process.env.FACEBOOK_CALLBACK_URL || 'http://localhost:5000/api/auth/facebook/callback',
+    profileFields: ['id', 'displayName', 'emails', 'photos']
+  }
 };
