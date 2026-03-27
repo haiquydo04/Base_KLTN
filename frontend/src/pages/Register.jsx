@@ -10,9 +10,6 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    fullName: '',
-    age: '',
-    gender: 'male',
   });
   const [validationError, setValidationError] = useState('');
 
@@ -26,6 +23,12 @@ const Register = () => {
     e.preventDefault();
     setValidationError('');
 
+    // Validate 4 required fields
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
+      setValidationError('All fields are required');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setValidationError('Passwords do not match');
       return;
@@ -36,16 +39,17 @@ const Register = () => {
       return;
     }
 
-    if (formData.age && parseInt(formData.age) < 18) {
-      setValidationError('You must be at least 18 years old');
-      return;
-    }
-
     try {
-      const { confirmPassword, ...registerData } = formData;
-      await register({ ...registerData, age: parseInt(formData.age) });
-      navigate('/discover');
+      console.log('Register data sent:', formData);
+      const result = await register(formData);
+      console.log('Register result:', result); // Debug log
+      
+      // Redirect to onboarding if registration successful
+      if (result.success) {
+        navigate('/onboarding');
+      }
     } catch (err) {
+      console.log('Register error:', err); // Debug log
       // Error handled by store
     }
   };
@@ -82,21 +86,7 @@ const Register = () => {
                 placeholder="Choose a username"
                 required
                 minLength={3}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
-              <input
-                type="text"
-                id="fullName"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Enter your full name"
+                maxLength={30}
               />
             </div>
 
@@ -114,42 +104,6 @@ const Register = () => {
                 placeholder="Enter your email"
                 required
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
-                  Age
-                </label>
-                <input
-                  type="number"
-                  id="age"
-                  name="age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="18+"
-                  min={18}
-                  max={100}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
-                  Gender
-                </label>
-                <select
-                  id="gender"
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className="input-field"
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
             </div>
 
             <div>
@@ -182,6 +136,7 @@ const Register = () => {
                 className="input-field"
                 placeholder="Confirm your password"
                 required
+                minLength={6}
               />
             </div>
 

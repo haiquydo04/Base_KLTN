@@ -1,4 +1,4 @@
-﻿# Server
+# Server
 PORT=5000
 NODE_ENV=development
 
@@ -31,6 +31,12 @@ GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 FACEBOOK_APP_ID=your-facebook-app-id
 FACEBOOK_APP_SECRET=your-facebook-app-secret
 FACEBOOK_CALLBACK_URL=http://localhost:5000/api/auth/facebook/callback
+
+# Cloudinary (for image uploads)
+# 1. Go to https://cloudinary.com/
+# 2. Create account and get credentials
+# 3. Create upload preset: Settings > Upload > Upload presets > Add upload preset
+
 
 # File Upload
 MAX_FILE_SIZE=5242880

@@ -5,6 +5,7 @@ import { SocketProvider } from './context/SocketContext';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Onboarding from './pages/Onboarding';
 import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
@@ -62,6 +63,14 @@ function App() {
               <PublicRoute>
                 <Register />
               </PublicRoute>
+            } 
+          />
+          <Route 
+            path="/onboarding" 
+            element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
             } 
           />
           <Route 

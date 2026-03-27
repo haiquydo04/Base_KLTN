@@ -20,6 +20,16 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const httpServer = createServer(app);
 
+// Debug middleware
+app.use((req, res, next) => {
+  if (req.originalUrl.includes('/auth/register')) {
+    console.log('=== REGISTER REQUEST ===');
+    console.log('URL:', req.originalUrl);
+    console.log('Body:', JSON.stringify(req.body));
+  }
+  next();
+});
+
 const io = new Server(httpServer, {
   cors: {
     origin: config.frontendUrl,

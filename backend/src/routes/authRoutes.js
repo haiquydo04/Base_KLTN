@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import config from '../config/index.js';
 import { register, login, getCurrentUser, logout, linkFacebook, linkGoogle } from '../controllers/authController.js';
 import { authenticate } from '../middleware/auth.js';
+import { upload } from '../config/upload.js';
 
 const router = express.Router();
 
@@ -33,7 +34,6 @@ router.get('/google/callback',
   }),
   (req, res) => {
     const token = generateToken(req.user._id);
-    const user = req.user;
     
     // Redirect to frontend with token
     res.redirect(`${config.frontendUrl}/auth/callback?token=${token}&provider=google`);
@@ -62,9 +62,16 @@ router.get('/facebook/callback',
   }
 );
 
-// ============ EXISTING ROUTES ============
+// ============ EMAIL AUTH ROUTES ============
 
+// POST /api/auth/register - JSON (không upload avatar)
+// Body: username, email, password, confirmPassword, fullName (optional), age (optional), gender (optional)
 router.post('/register', register);
+
+// POST /api/auth/register-json - Alias for /register (để backward compatibility)
+// Body: username, email, password, confirmPassword, fullName (optional), age (optional), gender (optional)
+router.post('/register-json', register);
+
 router.post('/login', login);
 router.get('/me', authenticate, getCurrentUser);
 router.post('/logout', authenticate, logout);
