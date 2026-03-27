@@ -19,6 +19,53 @@ const generateToken = (id) => {
   });
 };
 
+/**
+ * Generate a safe username from displayName
+ * - Remove spaces
+ * - Convert to lowercase
+ * - Remove special characters (keep only alphanumeric)
+ * - Limit to 30 characters max
+ * - Append random number if needed to ensure uniqueness
+ */
+const generateSafeUsername = async (displayName, provider) => {
+  const MAX_LENGTH = 30;
+  const RANDOM_SUFFIX_LENGTH = 3;
+  
+  // Generate base username from displayName
+  let baseUsername = displayName
+    .toLowerCase()
+    .replace(/\s+/g, '') // Remove all spaces
+    .replace(/[^a-z0-9]/g, ''); // Remove special characters
+  
+  // Truncate if too long to make room for random suffix
+  const maxBaseLength = MAX_LENGTH - RANDOM_SUFFIX_LENGTH - 1; // -1 for the underscore
+  if (baseUsername.length > maxBaseLength) {
+    baseUsername = baseUsername.substring(0, maxBaseLength);
+  }
+  
+  // Generate unique username with random suffix
+  const generateWithSuffix = (base, suffix) => {
+    return `${base}_${suffix}`;
+  };
+  
+  // Try to find a unique username (max 10 attempts)
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const randomSuffix = Math.random().toString(36).substring(2, 2 + RANDOM_SUFFIX_LENGTH);
+    const candidateUsername = generateWithSuffix(baseUsername, randomSuffix);
+    
+    // Check if username exists
+    const existingUser = await User.findOne({ username: candidateUsername });
+    if (!existingUser) {
+      return candidateUsername;
+    }
+  }
+  
+  // Fallback: use timestamp-based suffix (still within limits)
+  const timestampSuffix = Date.now().toString().slice(-5);
+  const fallbackUsername = baseUsername.substring(0, MAX_LENGTH - 6) + '_' + timestampSuffix;
+  return fallbackUsername;
+};
+
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
@@ -32,6 +79,20 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
+// Helper to update user with social login info
+const linkSocialAccount = async (user, profile, provider, photos) => {
+  user.googleId = profile.id;
+  user.loginMethod = provider;
+  user.isEmailVerified = true;
+  if (photos?.[0]?.value && !user.avatar) {
+    user.avatar = photos[0].value;
+  }
+  user.lastLogin = new Date();
+  user.isOnline = true;
+  await user.save({ validateBeforeSave: false });
+  return user;
+};
+
 // Google Strategy - chỉ khởi tạo nếu có credentials
 if (config.google?.clientID && config.google?.clientSecret) {
   passport.use(new GoogleStrategy({
@@ -41,8 +102,8 @@ if (config.google?.clientID && config.google?.clientSecret) {
     proxy: true
   }, async (accessToken, refreshToken, profile, done) => {
     try {
+      // Check if user already linked with this Google ID
       const existingUser = await User.findOne({ googleId: profile.id });
-
       if (existingUser) {
         existingUser.lastLogin = new Date();
         existingUser.isOnline = true;
@@ -52,28 +113,26 @@ if (config.google?.clientID && config.google?.clientSecret) {
       }
 
       const email = profile.emails?.[0]?.value;
-      let userByEmail = null;
+      
+      // Check if user exists with same email
       if (email) {
-        userByEmail = await User.findOne({ email: email.toLowerCase() });
+        const userByEmail = await User.findOne({ email: email.toLowerCase() });
+        if (userByEmail) {
+          await linkSocialAccount(userByEmail, profile, 'google', profile.photos);
+          return done(null, userByEmail);
+        }
       }
 
-      if (userByEmail) {
-        userByEmail.googleId = profile.id;
-        userByEmail.loginMethod = 'google';
-        userByEmail.isEmailVerified = true;
-        if (!userByEmail.avatar && profile.photos?.[0]?.value) {
-          userByEmail.avatar = profile.photos[0].value;
-        }
-        userByEmail.lastLogin = new Date();
-        userByEmail.isOnline = true;
-        await userByEmail.save({ validateBeforeSave: false });
-        return done(null, userByEmail);
-      }
+      // Create new user with safe username
+      const safeUsername = await generateSafeUsername(
+        profile.displayName || profile.emails?.[0]?.value || 'user',
+        'google'
+      );
 
       const newUser = await User.create({
         googleId: profile.id,
         email: email?.toLowerCase(),
-        username: `gg_${profile.id.substring(0, 15)}_${Date.now()}`,
+        username: safeUsername,
         fullName: profile.displayName,
         avatar: profile.photos?.[0]?.value || '',
         loginMethod: 'google',
@@ -106,8 +165,8 @@ if (config.facebook?.clientID && config.facebook?.clientSecret) {
     proxy: true
   }, async (accessToken, refreshToken, profile, done) => {
     try {
+      // Check if user already linked with this Facebook ID
       const existingUser = await User.findOne({ facebookId: profile.id });
-
       if (existingUser) {
         existingUser.lastLogin = new Date();
         existingUser.isOnline = true;
@@ -117,28 +176,26 @@ if (config.facebook?.clientID && config.facebook?.clientSecret) {
       }
 
       const email = profile.emails?.[0]?.value;
-      let userByEmail = null;
+      
+      // Check if user exists with same email
       if (email) {
-        userByEmail = await User.findOne({ email: email.toLowerCase() });
+        const userByEmail = await User.findOne({ email: email.toLowerCase() });
+        if (userByEmail) {
+          await linkSocialAccount(userByEmail, profile, 'facebook', profile.photos);
+          return done(null, userByEmail);
+        }
       }
 
-      if (userByEmail) {
-        userByEmail.facebookId = profile.id;
-        userByEmail.loginMethod = 'facebook';
-        userByEmail.isEmailVerified = true;
-        if (!userByEmail.avatar && profile.photos?.[0]?.value) {
-          userByEmail.avatar = profile.photos[0].value;
-        }
-        userByEmail.lastLogin = new Date();
-        userByEmail.isOnline = true;
-        await userByEmail.save({ validateBeforeSave: false });
-        return done(null, userByEmail);
-      }
+      // Create new user with safe username
+      const safeUsername = await generateSafeUsername(
+        profile.displayName || profile.emails?.[0]?.value || 'user',
+        'facebook'
+      );
 
       const newUser = await User.create({
         facebookId: profile.id,
         email: email?.toLowerCase(),
-        username: `fb_${profile.id.substring(0, 15)}_${Date.now()}`,
+        username: safeUsername,
         fullName: profile.displayName,
         avatar: profile.photos?.[0]?.value || '',
         loginMethod: 'facebook',
