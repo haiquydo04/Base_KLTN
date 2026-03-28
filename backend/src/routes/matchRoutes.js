@@ -1,12 +1,10 @@
 import express from 'express';
-import { 
-  likeUser, 
-  passUser, 
-  getLikes, 
-  getMutualLikes,
-  unmatch,
-  getSwipeHistory
-} from '../controllers/matchController.js';
+import { likeUser } from '../controllers/match/likeUser.controller.js';
+import { passUser } from '../controllers/match/passUser.controller.js';
+import { getLikes } from '../controllers/match/getLikes.controller.js';
+import { getMutualLikes } from '../controllers/match/getMutualLikes.controller.js';
+import { unmatch } from '../controllers/match/unmatch.controller.js';
+import { getSwipeHistory } from '../controllers/match/getSwipeHistory.controller.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();

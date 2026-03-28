@@ -1,16 +1,15 @@
 import express from 'express';
-import { 
-  getUsers, 
-  getUserById, 
-  updateProfile, 
-  getUserMatches,
-  getRecommendedUsers 
-} from '../controllers/userController.js';
-import { authenticate } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+
+import { getUsers } from '../controllers/user/getUsers.controller.js';
+import { getUserById } from '../controllers/user/getUserById.controller.js';
+import { updateProfile } from '../controllers/user/updateProfile.controller.js';
+import { getUserMatches } from '../controllers/user/getUserMatches.controller.js';
+import { getRecommendedUsers } from '../controllers/user/getRecommendedUsers.controller.js';
+import { authenticate } from '../middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,10 +33,7 @@ const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
-
-  if (extname && mimetype) {
-    return cb(null, true);
-  }
+  if (extname && mimetype) return cb(null, true);
   cb(new Error('Only image files are allowed!'), false);
 };
 
