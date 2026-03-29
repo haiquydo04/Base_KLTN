@@ -13,8 +13,10 @@
     "@fortawesome/free-brands-svg-icons": "^7.2.0",
     "@fortawesome/react-fontawesome": "^3.3.0",
     "axios": "^1.6.3",
+    "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^6.21.1",
     "socket.io-client": "^4.6.1",
     "zustand": "^4.4.7"

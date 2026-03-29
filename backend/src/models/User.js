@@ -172,6 +172,16 @@ const userSchema = new mongoose.Schema({
     default: false
   },
   
+  // Password Reset OTP (separate from email verification)
+  resetOTP: {
+    type: String,
+    default: null
+  },
+  resetOtpExpire: {
+    type: Date,
+    default: null
+  },
+  
   // KYC
   kycStatus: {
     type: String,

@@ -1,10 +1,8 @@
 import express from 'express';
-import { 
-  getMessages, 
-  sendMessage, 
-  getConversations,
-  markAsRead 
-} from '../controllers/messageController.js';
+import { getMessages } from '../controllers/message/getMessages.controller.js';
+import { sendMessage } from '../controllers/message/sendMessage.controller.js';
+import { getConversations } from '../controllers/message/getConversations.controller.js';
+import { markAsRead } from '../controllers/message/markAsRead.controller.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();

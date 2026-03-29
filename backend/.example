@@ -1,8 +1,6 @@
 # Server
 PORT=5000
 NODE_ENV=development
-
-# MongoDB
 MONGODB_URI=mongodb://localhost:27017/dating-app
 
 # JWT
@@ -12,6 +10,11 @@ JWT_EXPIRE=7d
 # URLs
 FRONTEND_URL=http://localhost:5173
 
+# Email (OTP)
+# EMAIL_MODE: console (dev) | gmail (prod)
+EMAIL_MODE=console
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-gmail-app-password
 
 # Google OAuth
 # 1. Go to https://console.cloud.google.com/
@@ -33,10 +36,9 @@ FACEBOOK_APP_SECRET=your-facebook-app-secret
 FACEBOOK_CALLBACK_URL=http://localhost:5000/api/auth/facebook/callback
 
 # Cloudinary (for image uploads)
-# 1. Go to https://cloudinary.com/
-# 2. Create account and get credentials
-# 3. Create upload preset: Settings > Upload > Upload presets > Add upload preset
-
+CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+CLOUDINARY_API_KEY=your-cloudinary-api-key
+CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 
 # File Upload
 MAX_FILE_SIZE=5242880
