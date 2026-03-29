@@ -87,6 +87,16 @@ const Login = () => {
 
             <section className="w-full max-w-[32rem] mx-auto lg:mx-0 lg:ml-auto lg:mr-8 px-3 sm:px-4">
               <div className="bg-white rounded-[2rem] shadow-xl border border-primary-100 p-6 sm:p-6">
+                <Link
+                  to="/"
+                  className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full border border-primary-100 bg-primary-50 text-primary-600 text-xs font-semibold hover:bg-primary-100 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span>Trang chủ</span>
+                </Link>
+
                 <div className="w-11 h-11 rounded-full bg-primary-100 text-primary-600 mx-auto mb-4 flex items-center justify-center">
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 21s-7-4.35-9.2-8.1C1.3 10.2 2.3 6.8 5.6 5.6c2.1-.8 4.2.1 5.4 1.8 1.2-1.7 3.3-2.6 5.4-1.8 3.3 1.2 4.3 4.6 2.8 7.3C19 16.65 12 21 12 21z" />
@@ -156,9 +166,9 @@ const Login = () => {
                   </button>
 
                   <div className="flex justify-end">
-                    <button type="button" className="text-[11px] font-semibold text-primary-600 hover:text-primary-700">
+                    <Link to="/forgot-password" className="text-[11px] font-semibold text-primary-600 hover:text-primary-700">
                       Quên mật khẩu?
-                    </button>
+                    </Link>
                   </div>
                 </form>
 
@@ -197,13 +207,12 @@ const Login = () => {
             </section>
           </div>
 
-          <footer className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400">
+          <footer className="pt-0 -mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400">
             <div className="flex items-center gap-6 uppercase tracking-wide font-semibold">
               <button type="button" className="hover:text-gray-600">Điều khoản</button>
               <button type="button" className="hover:text-gray-600">Bảo mật</button>
               <button type="button" className="hover:text-gray-600">Trợ giúp</button>
             </div>
-            <p>© 2024 LoveAI Studio. All rights reserved.</p>
           </footer>
         </div>
       </div>
