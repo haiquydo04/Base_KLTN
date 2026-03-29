@@ -10,7 +10,7 @@ import cookieSession from 'cookie-session';
 
 import config from './config/index.js';
 import passport from './config/passport.js';
-import { authRoutes, userRoutes, matchRoutes, messageRoutes } from './routes/index.js';
+import { authRoutes, userRoutes, matchRoutes, messageRoutes, adminRoutes } from './routes/index.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { initializeSocket } from './socket/index.js';
 
@@ -54,6 +54,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/match', matchRoutes);
 app.use('/api/messages', messageRoutes);
