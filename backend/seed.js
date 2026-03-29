@@ -134,7 +134,7 @@ function generateUsers(count = 50) {
     usedEmails.add(email);
 
     const isFake = i >= 45 && i < 50;
-    const isAdmin = i === 0;
+    const isAdmin = i < 3; // 3 tài khoản đầu tiên làm admin
 
     users.push({
       username: (emailBase.replace(/\./g, '') + i).substring(0, 20),
@@ -401,12 +401,13 @@ async function seedDatabase() {
     const users = await User.insertMany(usersWithHashedPassword);
     console.log(`✅ Đã tạo ${users.length} người dùng!\n`);
 
-    // Gán role admin cho user đầu tiên
+    // Gán role admin cho 3 tài khoản đầu tiên
     const adminRole = roles.find(r => r.name === 'admin');
-    await UserRole.create({
-      userId: users[0]._id,
+    const adminRolesData = users.slice(0, 3).map(admin => ({
+      userId: admin._id,
       roleId: adminRole._id
-    });
+    }));
+    await UserRole.insertMany(adminRolesData);
 
     // Tạo UserTags
     console.log('🏷️  Đang tạo UserTags...');
@@ -453,12 +454,13 @@ async function seedDatabase() {
     // Tạo AdminLogs
     console.log('📋 Đang tạo AdminLogs...');
     const adminLogs = [];
-    const admin = users[0];
+    const adminUsers = users.slice(0, 3);
     const actions = ['delete_user', 'verify_user', 'ban_user', 'unban_user', 'view_reports'];
     for (let i = 0; i < 15; i++) {
-      const target = users[randomBetween(1, users.length - 1)];
+      const target = users[randomBetween(3, users.length - 1)]; // Không trỏ đến admin
+      const randomAdmin = getRandomItem(adminUsers);
       adminLogs.push({
-        adminId: admin._id,
+        adminId: randomAdmin._id,
         action: getRandomItem(actions),
         targetId: target._id,
         description: 'Test admin action',
