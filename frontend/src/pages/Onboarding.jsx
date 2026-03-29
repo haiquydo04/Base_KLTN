@@ -5,17 +5,8 @@ import { userService } from '../services/api';
 
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import iconUrl from 'leaflet/dist/images/marker-icon.png';
-import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
-import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl,
-  iconUrl,
-  shadowUrl,
-});
+import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
+import 'leaflet-defaulticon-compatibility';
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -24,18 +15,19 @@ const Onboarding = () => {
   const [error, setError] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    fullName: '',
+    fullName: user?.fullName || '',
     age: '',
     dob: '', // Added for date of birth
-    gender: '',
-    bio: '',
-    location: '',
-    interests: [],
-    occupation: '',
-    lookingFor: '',
+    gender: user?.gender || '',
+    bio: user?.bio || '',
+    location: user?.location || '',
+    interests: user?.interests || [],
+    occupation: user?.occupation || '',
+    lookingFor: user?.lookingFor || '',
     avatar: null,
   });
   const [newInterest, setNewInterest] = useState('');
+  const [googleAvatarUrl, setGoogleAvatarUrl] = useState(user?.avatar || '');
   
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapPosition, setMapPosition] = useState(null);
@@ -161,8 +153,13 @@ const Onboarding = () => {
         age: calculatedAge,
       };
 
+      // Xử lý avatar: ưu tiên file upload mới, giữ Google avatar URL, hoặc giữ trống
       if (!updateData.avatar) {
-        delete updateData.avatar;
+        if (googleAvatarUrl) {
+          updateData.avatar = googleAvatarUrl;
+        } else {
+          delete updateData.avatar;
+        }
       }
 
       const result = await userService.updateProfile(updateData);
@@ -270,6 +267,11 @@ const Onboarding = () => {
                     {formData.avatar ? (
                       <div className="flex flex-col items-center">
                         <img src={URL.createObjectURL(formData.avatar)} alt="Preview" className="w-16 h-16 rounded-full object-cover mb-1 shadow-md border-2 border-white" />
+                        <span className="text-[10px] font-bold text-primary-600">Thay đổi ảnh</span>
+                      </div>
+                    ) : googleAvatarUrl ? (
+                      <div className="flex flex-col items-center">
+                        <img src={googleAvatarUrl} alt="Google Avatar" className="w-16 h-16 rounded-full object-cover mb-1 shadow-md border-2 border-white" onError={(e) => { e.target.style.display = 'none'; setGoogleAvatarUrl(''); }} />
                         <span className="text-[10px] font-bold text-primary-600">Thay đổi ảnh</span>
                       </div>
                     ) : (

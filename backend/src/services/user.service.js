@@ -9,7 +9,7 @@ import Swipe from '../models/Swipe.js';
 const SAFE_FIELDS = [
   'fullName', 'age', 'gender', 'bio', 'interests', 'location',
   'occupation', 'education', 'height', 'drinking', 'smoking',
-  'lookingFor', 'preferences', 'photos'
+  'lookingFor', 'preferences', 'photos', 'avatar'
 ];
 
 const buildUserQuery = (currentUser, extraExcludeIds = []) => {
@@ -62,9 +62,14 @@ export const updateUserProfile = async (userId, updates, file) => {
     if (updates[field] !== undefined) sanitized[field] = updates[field];
   });
 
+  // Xử lý avatar: ưu tiên file upload mới, nếu không thì giữ avatar URL từ body
   if (file) {
     sanitized.avatar = `/uploads/${file.filename}`;
+  } else if (updates.avatar && typeof updates.avatar === 'string' && updates.avatar.startsWith('http')) {
+    // Nếu là URL từ Google hoặc external URL, lưu trực tiếp
+    sanitized.avatar = updates.avatar;
   }
+  // Nếu updates.avatar là empty string và không có file, giữ nguyên avatar cũ (không cập nhật)
 
   const user = await User.findByIdAndUpdate(
     userId,

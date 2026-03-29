@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const STEPS = [
   { id: 1, label: 'Nhập Email' },
@@ -130,7 +133,7 @@ function Sidebar({ currentStep }) {
 }
 
 /* ── Step 1 ───────────────────────────────────── */
-function Step1({ email, setEmail, onNext, alreadyDone }) {
+function Step1({ email, setEmail, onNext, error, isLoading }) {
   return (
     <div>
       <div className="mb-5">
@@ -141,6 +144,11 @@ function Step1({ email, setEmail, onNext, alreadyDone }) {
         <h3 className="text-xl font-black text-gray-800 mb-1">Nhập địa chỉ Email</h3>
         <p className="text-xs text-gray-400 leading-relaxed">Chúng tôi sẽ gửi mã OTP 6 số đến email đã đăng ký.</p>
       </div>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-red-600 text-xs text-center">{error}</p>
+        </div>
+      )}
       <label className="block text-xs font-bold text-gray-500 mb-1.5">Địa chỉ Email</label>
       <div className="relative mb-4">
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400 pointer-events-none"><MailIcon /></span>
@@ -148,7 +156,9 @@ function Step1({ email, setEmail, onNext, alreadyDone }) {
           className="w-full h-11 rounded-full border border-primary-100 bg-white pl-11 pr-4 text-sm text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-transparent transition-all" />
       </div>
       <div className="space-y-2">
-        <PrimaryBtn onClick={onNext} disabled={!email.trim()}>{alreadyDone ? 'Tiếp theo →' : 'Gửi mã xác thực →'}</PrimaryBtn>
+        <PrimaryBtn onClick={onNext} disabled={!email.trim() || isLoading}>
+          {isLoading ? 'Đang gửi...' : 'Gửi mã xác thực →'}
+        </PrimaryBtn>
         <Link to="/login" className="w-full h-10 rounded-full border border-primary-200 bg-primary-50 text-xs text-primary-600 font-bold hover:bg-primary-100 transition-all flex items-center justify-center gap-1.5">
           <ChevLeft /> Quay lại đăng nhập
         </Link>
@@ -158,7 +168,7 @@ function Step1({ email, setEmail, onNext, alreadyDone }) {
 }
 
 /* ── Step 2 ───────────────────────────────────── */
-function Step2({ otp, setOtp, onNext, onPrev, alreadyDone }) {
+function Step2({ otp, setOtp, onNext, onPrev, onResend, error, isLoading }) {
   const refs = useRef([]);
   const { display, expired, restart } = useTimer(299, true);
   const handleInput = (i, val) => {
@@ -167,7 +177,7 @@ function Step2({ otp, setOtp, onNext, onPrev, alreadyDone }) {
     if (val && i < 5) refs.current[i + 1]?.focus();
   };
   const handleKey = (i, e) => { if (e.key === 'Backspace' && !otp[i] && i > 0) refs.current[i - 1]?.focus(); };
-  const resend = () => { setOtp(Array(6).fill('')); restart(); refs.current[0]?.focus(); };
+  const resend = () => { setOtp(Array(6).fill('')); restart(); onResend(); };
   const filled = otp.every(d => d !== '');
 
   return (
@@ -180,6 +190,11 @@ function Step2({ otp, setOtp, onNext, onPrev, alreadyDone }) {
         <h3 className="text-xl font-black text-gray-800 mb-1">Nhập mã OTP</h3>
         <p className="text-xs text-gray-400 leading-relaxed">Mã 6 số đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.</p>
       </div>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-red-600 text-xs text-center">{error}</p>
+        </div>
+      )}
       <label className="block text-xs font-bold text-gray-500 mb-2">Mã xác thực</label>
       <div className="grid grid-cols-6 gap-2 mb-3">
         {otp.map((d, i) => (
@@ -196,10 +211,10 @@ function Step2({ otp, setOtp, onNext, onPrev, alreadyDone }) {
         <span className={`text-xs font-medium flex items-center gap-1.5 ${expired ? 'text-primary-500' : 'text-gray-400'}`}>
           <ClockIcon />{expired ? 'Mã đã hết hạn' : `Hiệu lực: ${display}`}
         </span>
-        <button onClick={resend} className="text-xs font-bold text-primary-600 hover:text-primary-700 hover:underline transition-colors">Gửi lại mã</button>
+        <button onClick={resend} disabled={isLoading} className="text-xs font-bold text-primary-600 hover:text-primary-700 hover:underline transition-colors disabled:opacity-50">Gửi lại mã</button>
       </div>
       <div className="space-y-2">
-        <PrimaryBtn onClick={onNext} disabled={!filled}>{alreadyDone ? 'Tiếp theo →' : 'Xác nhận OTP →'}</PrimaryBtn>
+        <PrimaryBtn onClick={onNext} disabled={!filled || isLoading}>{isLoading ? 'Đang xác thực...' : 'Xác nhận OTP →'}</PrimaryBtn>
         <GhostBtn onClick={onPrev}><ChevLeft /> Quay lại bước trước</GhostBtn>
       </div>
     </div>
@@ -207,7 +222,7 @@ function Step2({ otp, setOtp, onNext, onPrev, alreadyDone }) {
 }
 
 /* ── Step 3 ───────────────────────────────────── */
-function Step3({ newPass, setNewPass, confirmPass, setConfirmPass, onNext, onPrev }) {
+function Step3({ newPass, setNewPass, confirmPass, setConfirmPass, onNext, onPrev, error, isLoading }) {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const mismatch = confirmPass.length > 0 && newPass !== confirmPass;
@@ -224,6 +239,11 @@ function Step3({ newPass, setNewPass, confirmPass, setConfirmPass, onNext, onPre
         <h3 className="text-xl font-black text-gray-800 mb-1">Đặt mật khẩu mới</h3>
         <p className="text-xs text-gray-400 leading-relaxed">Tạo mật khẩu mạnh để bảo vệ tài khoản của bạn.</p>
       </div>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-red-600 text-xs text-center">{error}</p>
+        </div>
+      )}
       <div className="space-y-3 mb-4">
         <PasswordField label="Mật khẩu mới" value={newPass} onChange={e => setNewPass(e.target.value)}
           show={showNew} onToggle={() => setShowNew(v => !v)} error={null}
@@ -233,7 +253,7 @@ function Step3({ newPass, setNewPass, confirmPass, setConfirmPass, onNext, onPre
           error={mismatch ? 'Mật khẩu không khớp.' : null} />
       </div>
       <div className="space-y-2">
-        <PrimaryBtn onClick={onNext} disabled={!valid}>Lưu mật khẩu mới</PrimaryBtn>
+        <PrimaryBtn onClick={onNext} disabled={!valid || isLoading}>{isLoading ? 'Đang lưu...' : 'Lưu mật khẩu mới'}</PrimaryBtn>
         <GhostBtn onClick={onPrev}><ChevLeft /> Quay lại bước trước</GhostBtn>
       </div>
     </div>
@@ -270,9 +290,76 @@ export default function ForgotPassword() {
   const [otp, setOtp] = useState(Array(6).fill(''));
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const goNext = () => { const n = step + 1; setStep(n); if (n > maxStep) setMaxStep(n); };
   const goPrev = () => setStep(s => Math.max(s - 1, 1));
+
+  // Step 1: Gửi yêu cầu reset password
+  const handleSendOTP = async () => {
+    if (!email.trim()) return;
+    setIsLoading(true);
+    setError('');
+    try {
+      await axios.post(`${API_URL}/auth/forgot-password`, { email: email.trim() });
+      goNext();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể gửi mã OTP. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Step 2: Xác thực OTP
+  const handleVerifyOTP = async () => {
+    const otpCode = otp.join('');
+    if (otpCode.length !== 6) return;
+    setIsLoading(true);
+    setError('');
+    try {
+      await axios.post(`${API_URL}/auth/verify-otp`, { email: email.trim(), otp: otpCode });
+      goNext();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Mã OTP không hợp lệ hoặc đã hết hạn.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Step 3: Đặt lại mật khẩu
+  const handleResetPassword = async () => {
+    if (newPass !== confirmPass || newPass.length < 6) return;
+    setIsLoading(true);
+    setError('');
+    try {
+      const otpCode = otp.join('');
+      await axios.post(`${API_URL}/auth/reset-password`, {
+        email: email.trim(),
+        otp: otpCode,
+        newPassword: newPass
+      });
+      goNext();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Gửi lại OTP
+  const handleResendOTP = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      await axios.post(`${API_URL}/auth/forgot-password`, { email: email.trim() });
+      setOtp(Array(6).fill(''));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể gửi lại mã OTP.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-50 via-white to-white">
@@ -296,9 +383,9 @@ export default function ForgotPassword() {
           <div className="bg-white/95 backdrop-blur border border-primary-100 rounded-[1.6rem] shadow-xl overflow-hidden flex" style={{ minHeight: 440 }}>
             <Sidebar currentStep={step} />
             <div className="flex-1 p-7 min-w-0">
-              {step === 1 && <Step1 email={email} setEmail={setEmail} onNext={goNext} alreadyDone={maxStep > 1} />}
-              {step === 2 && <Step2 otp={otp} setOtp={setOtp} onNext={goNext} onPrev={goPrev} alreadyDone={maxStep > 2} />}
-              {step === 3 && <Step3 newPass={newPass} setNewPass={setNewPass} confirmPass={confirmPass} setConfirmPass={setConfirmPass} onNext={goNext} onPrev={goPrev} />}
+              {step === 1 && <Step1 email={email} setEmail={setEmail} onNext={handleSendOTP} error={error} isLoading={isLoading} />}
+              {step === 2 && <Step2 otp={otp} setOtp={setOtp} onNext={handleVerifyOTP} onPrev={goPrev} onResend={handleResendOTP} error={error} isLoading={isLoading} />}
+              {step === 3 && <Step3 newPass={newPass} setNewPass={setNewPass} confirmPass={confirmPass} setConfirmPass={setConfirmPass} onNext={handleResetPassword} onPrev={goPrev} error={error} isLoading={isLoading} />}
               {step === 4 && <Step4 />}
             </div>
           </div>
