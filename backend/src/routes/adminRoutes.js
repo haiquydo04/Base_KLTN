@@ -1,5 +1,6 @@
 import express from 'express';
 import { adminLogin } from '../controllers/admin/adminAuth.controller.js';
+import { getUsers, toggleUserStatus } from '../controllers/admin/adminUserController.js';
 import { authenticate, authorizeAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -17,5 +18,15 @@ router.get('/me', authenticate, authorizeAdmin, (req, res) => {
     user: req.user
   });
 });
+
+// Route: GET /api/admin/users
+// Mục đích: Lấy danh sách tài khoản người dùng
+// Yêu cầu: Header Authorization: Bearer <token>, Role: admin
+router.get('/users', authenticate, authorizeAdmin, getUsers);
+
+// Route: PUT /api/admin/users/:id/status
+// Mục đích: Khóa/mở khóa tài khoản người dùng
+// Yêu cầu: Header Authorization: Bearer <token>, Role: admin
+router.put('/users/:id/status', authenticate, authorizeAdmin, toggleUserStatus);
 
 export default router;
