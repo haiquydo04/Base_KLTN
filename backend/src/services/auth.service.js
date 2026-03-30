@@ -256,6 +256,9 @@ export const requestPasswordReset = async ({ email }) => {
   user.resetOtpExpire = otpExpire;
   await user.save({ validateBeforeSave: false });
 
+  // Debug: log OTP in development
+  console.log(`[OTP DEBUG] For ${trimmedEmail}: ${otp} (expires in 5 min)`);
+
   await sendOTP(trimmedEmail, otp);
 
   return { message: 'If your email is registered, you will receive an OTP code' };
