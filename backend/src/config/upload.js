@@ -71,7 +71,6 @@ export const uploadLocal = multer({
   fileFilter
 });
 
-// Choose upload method based on config
 export const upload = (() => {
   const hasCloudinary = config.cloudinary?.cloud_name && config.cloudinary?.api_key;
   return hasCloudinary ? uploadCloudinary : uploadLocal;
