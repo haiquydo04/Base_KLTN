@@ -7,8 +7,8 @@ import {
   getProfileByUserId,
   createOrUpdateProfile,
   getProfileStats
-} from '../services/userProfile.service.js';
-import { sendSuccess, sendError, sendValidationError } from '../utils/apiResponse.js';
+} from '../../services/userProfile.service.js';
+import { sendSuccess, sendError, sendValidationError } from '../../utils/apiResponse.js';
 
 /**
  * GET /api/profile
