@@ -40,6 +40,11 @@ const Register = () => {
   const UserIcon = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
   const MailIcon = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
   const LockIcon = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>;
+  const ShieldIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
 
   return (
     <div className="min-h-screen w-full bg-white bg-gradient-to-br from-primary-50 via-white to-secondary-50 relative">
@@ -136,7 +141,7 @@ const Register = () => {
                     <div className="relative">
                       <span className={iconWrap}><UserIcon /></span>
                       <input id="username" name="username" type="text" value={formData.username} onChange={handleChange}
-                        placeholder="Nguyễn Văn A" className={inputCls} required minLength={3} maxLength={30} />
+                        placeholder="name123" className={inputCls} required minLength={3} maxLength={30} />
                     </div>
                   </div>
 
@@ -146,7 +151,7 @@ const Register = () => {
                     <div className="relative">
                       <span className={iconWrap}><MailIcon /></span>
                       <input id="email" name="email" type="email" value={formData.email} onChange={handleChange}
-                        placeholder="email@vidu.com" className={inputCls} required />
+                        placeholder="user_name@gmail.com" className={inputCls} required />
                     </div>
                   </div>
 
@@ -169,7 +174,7 @@ const Register = () => {
                   <div>
                     <label htmlFor="confirmPassword" className={labelCls}>Xác nhận</label>
                     <div className="relative">
-                      <span className={iconWrap}><LockIcon /></span>
+                      <span className={iconWrap}><ShieldIcon /></span>
                       <input id="confirmPassword" name="confirmPassword" type={showConfirm ? 'text' : 'password'}
                         value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••"
                         className={`${inputCls} pr-10`} required minLength={6} />
@@ -204,7 +209,7 @@ const Register = () => {
                   {/* Divider */}
                   <div className="flex items-center gap-3">
                     <div className="h-px flex-1 bg-gray-200" />
-                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Hoặc đăng ký bằng</p>
+                    <p className="text-[11px] font-bold text-gray-500 tracking-widest whitespace-nowrap">Hoặc đăng ký bằng</p>
                     <div className="h-px flex-1 bg-gray-200" />
                   </div>
 
@@ -228,8 +233,8 @@ const Register = () => {
                   </div>
 
                   {/* Security */}
-                  <p className="text-center text-[11px] text-gray-500 font-bold tracking-widest uppercase flex items-center justify-center gap-1.5 mt-2">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  <p className="text-center text-[11px] text-gray-500 font-semibold flex items-center justify-center gap-1.5 mt-2">
+                    <LockIcon />
                     Dữ liệu được bảo mật tuyệt đối
                   </p>
                 </div>
