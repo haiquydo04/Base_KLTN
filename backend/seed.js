@@ -377,6 +377,7 @@ async function seedDatabase() {
     console.log('🔐 Đang tạo Roles...');
     const roles = await Role.insertMany([
       { name: 'user', description: 'Regular user', permissions: ['read', 'write'] },
+      { name: 'premium', description: 'Premium user', permissions: ['read', 'write', 'premium_features'] },
       { name: 'admin', description: 'Administrator', permissions: ['read', 'write', 'delete', 'admin'] }
     ]);
     console.log(`✅ Đã tạo ${roles.length} roles!\n`);
