@@ -10,9 +10,13 @@ const LandingPage = () => {
   const [aiFeatureError, setAiFeatureError] = useState(false);
   const [premiumImageError, setPremiumImageError] = useState(false);
 
-  const openRegisterModal = () => {
-    setAuthModalMode('register');
-    setAuthModalOpen(true);
+  // Chuyển hướng sang trang đăng ký
+  const openRegisterPage = () => {
+    window.location.href = '/register';
+  };
+  // Chuyển hướng sang trang đăng nhập
+  const openLoginPage = () => {
+    window.location.href = '/login';
   };
 
   return (
@@ -33,7 +37,7 @@ const LandingPage = () => {
               Đăng nhập
             </Link>
             <button
-              onClick={openRegisterModal}
+              onClick={openRegisterPage}
               className="px-5 py-2.5 text-sm rounded-full bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
             >
               Tham gia VIP
@@ -64,17 +68,17 @@ const LandingPage = () => {
 
             <div className="mt-7 flex flex-wrap gap-3">
               <button
-                onClick={openRegisterModal}
+                onClick={openLoginPage}
                 className="px-6 py-3 rounded-full bg-gradient-to-r from-primary-600 to-primary-500 text-white text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
               >
                 Bắt Đầu Ngay →
               </button>
-              <Link
-                to="/login"
+              <button
+                onClick={openRegisterPage}
                 className="px-6 py-3 rounded-full bg-primary-100 text-gray-600 text-base font-semibold hover:bg-primary-200 transition-colors duration-200"
               >
                 Khám phá AI
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -237,7 +241,7 @@ const LandingPage = () => {
           </h3>
 
           <button
-            onClick={openRegisterModal}
+            onClick={openRegisterPage}
             className="mt-8 px-8 sm:px-12 py-3.5 rounded-full bg-gradient-to-r from-primary-600 to-primary-500 text-white text-lg sm:text-xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
           >
             Tạo Tài Khoản Miễn Phí
