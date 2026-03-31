@@ -11,6 +11,7 @@ import cookieSession from 'cookie-session';
 import config from './config/index.js';
 import passport from './config/passport.js';
 import { authRoutes, userRoutes, matchRoutes, messageRoutes, adminRoutes } from './routes/index.js';
+import userProfileRoutes from './routes/userProfile.routes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { initializeSocket } from './socket/index.js';
@@ -60,6 +61,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/match', matchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/v1/profiles', profileRoutes);
+app.use('/api/profile', userProfileRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
