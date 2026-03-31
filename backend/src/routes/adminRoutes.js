@@ -1,6 +1,6 @@
 import express from 'express';
 import { adminLogin } from '../controllers/admin/adminAuth.controller.js';
-import { getUsers, toggleUserStatus } from '../controllers/admin/adminUserController.js';
+import { getUsers, toggleUserStatus, updateUserRole } from '../controllers/admin/adminUserController.js';
 import { authenticate, authorizeAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -28,5 +28,10 @@ router.get('/users', authenticate, authorizeAdmin, getUsers);
 // Mục đích: Khóa/mở khóa tài khoản người dùng
 // Yêu cầu: Header Authorization: Bearer <token>, Role: admin
 router.put('/users/:id/status', authenticate, authorizeAdmin, toggleUserStatus);
+
+// Route: PUT /api/admin/users/:id/role
+// Mục đích: Cập nhật chức vụ (role)
+// Yêu cầu: Header Authorization: Bearer <token>, Role: admin
+router.put('/users/:id/role', authenticate, authorizeAdmin, updateUserRole);
 
 export default router;
