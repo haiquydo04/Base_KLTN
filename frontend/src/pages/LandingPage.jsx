@@ -27,7 +27,7 @@ const LandingPage = () => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-primary-100 shadow-sm px-5 lg:px-10 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="text-2xl font-extrabold text-primary-600 tracking-tight">
-            LoveAI
+            LoveAII
           </Link>
           <div className="flex items-center gap-3">
             <Link
