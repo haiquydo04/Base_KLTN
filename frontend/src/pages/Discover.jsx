@@ -43,15 +43,26 @@ const Discover = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
+<<<<<<< Updated upstream
   const [profiles, setProfiles]           = useState([]);
   const [currentIndex, setCurrentIndex]   = useState(0);
   const [loading, setLoading]             = useState(true);
+=======
+  const [profiles, setProfiles] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+>>>>>>> Stashed changes
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError]                 = useState('');
   const [matchNotification, setMatchNotification] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
+<<<<<<< Updated upstream
   const [likeFlash, setLikeFlash]         = useState(false);
   const [passFlash, setPassFlash]         = useState(false);
+=======
+  const [likeFlash, setLikeFlash] = useState(false);
+  const [passFlash, setPassFlash] = useState(false);
+>>>>>>> Stashed changes
 
   const fetchProfiles = useCallback(async () => {
     try {
@@ -103,9 +114,15 @@ const Discover = () => {
   };
 
   /* ── Shared tokens ── */
+<<<<<<< Updated upstream
   const BG_PAGE   = 'linear-gradient(160deg, #fff8fa 0%, #fdf4ff 55%, #f5f3ff 100%)';
   const CARD_STYLE = { background: '#ffffff', borderRadius: 16, border: '1px solid #fce7f3' };
   const SHADOW_SM  = '0 2px 12px rgba(244,63,94,0.06)';
+=======
+  const BG_PAGE = 'linear-gradient(160deg, #fff8fa 0%, #fdf4ff 55%, #f5f3ff 100%)';
+  const CARD_STYLE = { background: '#ffffff', borderRadius: 16, border: '1px solid #fce7f3' };
+  const SHADOW_SM = '0 2px 12px rgba(244,63,94,0.06)';
+>>>>>>> Stashed changes
 
   /* ── STATES ── */
   if (loading) return (
@@ -159,15 +176,26 @@ const Discover = () => {
     </div>
   );
 
+<<<<<<< Updated upstream
   const photos  = getPhotos(cp);
   const mainSrc = photos[selectedPhoto] || null;
   const side    = photos.filter((_, i) => i !== selectedPhoto).slice(0, 2);
+=======
+  const photos = getPhotos(cp);
+  const mainSrc = photos[selectedPhoto] || null;
+  const side = photos.filter((_, i) => i !== selectedPhoto).slice(0, 2);
+>>>>>>> Stashed changes
   const initial = ((cp.fullName || cp.username) ?? '?').charAt(0).toUpperCase();
 
   const aiItems = [
     { icon: '🎯', bg: '#fce7f3', title: 'Tính cách tương đồng', desc: 'Cả hai đều hướng nội, đề cao sự chân thành trong quan hệ lâu dài.' },
+<<<<<<< Updated upstream
     { icon: '🎁', bg: '#fef3c7', title: 'Sở thích giao thoa',   desc: 'Đam mê du lịch & thiết kế sáng tạo — chủ đề mở đầu tuyệt vời.' },
     { icon: '📈', bg: '#ede9fe', title: 'Dự đoán kết nối',      desc: 'Khả năng cao có buổi hẹn hò chất lượng tại quán cà phê yên tĩnh.' },
+=======
+    { icon: '🎁', bg: '#fef3c7', title: 'Sở thích giao thoa', desc: 'Đam mê du lịch & thiết kế sáng tạo — chủ đề mở đầu tuyệt vời.' },
+    { icon: '📈', bg: '#ede9fe', title: 'Dự đoán kết nối', desc: 'Khả năng cao có buổi hẹn hò chất lượng tại quán cà phê yên tĩnh.' },
+>>>>>>> Stashed changes
   ];
 
   /* ════ MAIN RENDER ════ */
@@ -191,7 +219,11 @@ const Discover = () => {
               <div style={{ borderRadius: 18, overflow: 'hidden', height: 290, position: 'relative', boxShadow: '0 4px 20px rgba(244,63,94,0.10)', flexShrink: 0 }}>
                 {mainSrc
                   ? <img src={mainSrc} alt={cp.fullName || cp.username}
+<<<<<<< Updated upstream
                       style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block' }} />
+=======
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block' }} />
+>>>>>>> Stashed changes
                   : <PhotoPlaceholder initial={initial} />
                 }
 
@@ -200,10 +232,19 @@ const Discover = () => {
                   <div style={{ position: 'absolute', top: 10, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 5 }}>
                     {photos.map((_, i) => (
                       <button key={i} onClick={() => setSelectedPhoto(i)}
+<<<<<<< Updated upstream
                         style={{ height: 4, borderRadius: 4, border: 'none', cursor: 'pointer', padding: 0,
                           width: i === selectedPhoto ? 20 : 10,
                           background: i === selectedPhoto ? '#fff' : 'rgba(255,255,255,0.5)',
                           transition: 'all .25s' }} />
+=======
+                        style={{
+                          height: 4, borderRadius: 4, border: 'none', cursor: 'pointer', padding: 0,
+                          width: i === selectedPhoto ? 20 : 10,
+                          background: i === selectedPhoto ? '#fff' : 'rgba(255,255,255,0.5)',
+                          transition: 'all .25s'
+                        }} />
+>>>>>>> Stashed changes
                     ))}
                   </div>
                 )}
@@ -280,6 +321,7 @@ const Discover = () => {
               {/* Thumb 1 */}
               <div
                 onClick={() => side[0] && setSelectedPhoto(photos.indexOf(side[0]))}
+<<<<<<< Updated upstream
                 style={{ borderRadius: 16, overflow: 'hidden', height: 138, cursor: side[0] ? 'pointer' : 'default',
                   background: 'linear-gradient(135deg,#fce7f3,#fdf4ff)', boxShadow: SHADOW_SM, flexShrink: 0 }}
               >
@@ -292,12 +334,29 @@ const Discover = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
+=======
+                style={{
+                  borderRadius: 16, overflow: 'hidden', height: 138, cursor: side[0] ? 'pointer' : 'default',
+                  background: 'linear-gradient(135deg,#fce7f3,#fdf4ff)', boxShadow: SHADOW_SM, flexShrink: 0
+                }}
+              >
+                {side[0]
+                  ? <img src={side[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', transition: 'transform .3s', display: 'block' }}
+                    onMouseEnter={e => e.target.style.transform = 'scale(1.04)'}
+                    onMouseLeave={e => e.target.style.transform = 'scale(1)'} />
+                  : <div className="w-full h-full flex items-center justify-center">
+                    <svg width="28" height="28" fill="none" stroke="#f9a8d4" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+>>>>>>> Stashed changes
                 }
               </div>
 
               {/* Thumb 2 */}
               <div
                 onClick={() => side[1] && setSelectedPhoto(photos.indexOf(side[1]))}
+<<<<<<< Updated upstream
                 style={{ borderRadius: 16, overflow: 'hidden', height: 138, cursor: side[1] ? 'pointer' : 'default',
                   background: 'linear-gradient(135deg,#ede9fe,#fdf4ff)', boxShadow: SHADOW_SM, flexShrink: 0 }}
               >
@@ -310,6 +369,22 @@ const Discover = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
+=======
+                style={{
+                  borderRadius: 16, overflow: 'hidden', height: 138, cursor: side[1] ? 'pointer' : 'default',
+                  background: 'linear-gradient(135deg,#ede9fe,#fdf4ff)', boxShadow: SHADOW_SM, flexShrink: 0
+                }}
+              >
+                {side[1]
+                  ? <img src={side[1]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', transition: 'transform .3s', display: 'block' }}
+                    onMouseEnter={e => e.target.style.transform = 'scale(1.04)'}
+                    onMouseLeave={e => e.target.style.transform = 'scale(1)'} />
+                  : <div className="w-full h-full flex items-center justify-center">
+                    <svg width="28" height="28" fill="none" stroke="#c4b5fd" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+>>>>>>> Stashed changes
                 }
               </div>
 
@@ -340,8 +415,13 @@ const Discover = () => {
                         transform: passFlash ? 'scale(0.9)' : 'scale(1)',
                         transition: 'all .2s', opacity: actionLoading ? 0.4 : 1
                       }}
+<<<<<<< Updated upstream
                       onMouseEnter={e => { if (!passFlash) { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(252,165,165,0.45)'; }}}
                       onMouseLeave={e => { if (!passFlash) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 3px 12px rgba(252,165,165,0.25)'; }}}
+=======
+                      onMouseEnter={e => { if (!passFlash) { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(252,165,165,0.45)'; } }}
+                      onMouseLeave={e => { if (!passFlash) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 3px 12px rgba(252,165,165,0.25)'; } }}
+>>>>>>> Stashed changes
                     >
                       <svg width="18" height="18" fill="none" stroke={passFlash ? '#fff' : '#f87171'} strokeWidth="2.5" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -364,8 +444,13 @@ const Discover = () => {
                         transform: likeFlash ? 'scale(1.16)' : 'scale(1)',
                         transition: 'all .2s', opacity: actionLoading ? 0.4 : 1, position: 'relative', overflow: 'visible'
                       }}
+<<<<<<< Updated upstream
                       onMouseEnter={e => { if (!likeFlash) { e.currentTarget.style.transform = 'scale(1.10)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(244,63,94,0.50), 0 0 0 10px rgba(244,63,94,0.12)'; }}}
                       onMouseLeave={e => { if (!likeFlash) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 22px rgba(244,63,94,0.38), 0 0 0 5px rgba(244,63,94,0.08)'; }}}
+=======
+                      onMouseEnter={e => { if (!likeFlash) { e.currentTarget.style.transform = 'scale(1.10)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(244,63,94,0.50), 0 0 0 10px rgba(244,63,94,0.12)'; } }}
+                      onMouseLeave={e => { if (!likeFlash) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 22px rgba(244,63,94,0.38), 0 0 0 5px rgba(244,63,94,0.08)'; } }}
+>>>>>>> Stashed changes
                     >
                       <svg width="28" height="28" fill="#fff" viewBox="0 0 24 24">
                         <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" />
@@ -511,8 +596,13 @@ const Discover = () => {
                     {u?.avatar
                       ? <img src={u.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 20, background: i === 0 ? 'linear-gradient(135deg,#fb7185,#f43f5e)' : 'linear-gradient(135deg,#c4b5fd,#8b5cf6)' }}>
+<<<<<<< Updated upstream
                           {(u?.fullName || u?.username)?.charAt(0).toUpperCase()}
                         </div>
+=======
+                        {(u?.fullName || u?.username)?.charAt(0).toUpperCase()}
+                      </div>
+>>>>>>> Stashed changes
                     }
                   </div>
                 ))}
