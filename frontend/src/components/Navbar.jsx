@@ -16,12 +16,16 @@ const Navbar = () => {
 
   const navLinks = [
     { to: '/discover', label: 'Khám phá' },
-    { to: '/matches', label: 'Tin nhắn' },
+    { to: '/messages', label: 'Tin nhắn' },
     { to: '/matches', label: 'Tương hợp' },
     { to: '/video-chat', label: 'Random Video' },
   ];
 
-  const isActive = (path) => location.pathname === path;
+  const isDiscover = location.pathname === '/discover';
+  const isMessages = location.pathname === '/messages' || location.pathname.startsWith('/chat/');
+  const isMatches = location.pathname === '/matches';
+  const isVideo = location.pathname === '/video-chat';
+  const isSafety = location.pathname === '/safety';
 
   return (
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
@@ -39,20 +43,12 @@ const Navbar = () => {
           {/* Center Nav Links */}
           <div className="flex-1 flex justify-center">
             <div className="flex items-center gap-1">
-              {navLinks.map((link, idx) => {
-                const active = isActive(link.to) && idx === 0
-                  ? isActive('/discover')
-                  : location.pathname === link.to && idx === navLinks.findIndex(l => l.to === link.to && l.label === link.label);
-
-                const isCurrentActive =
-                  (link.to === '/discover' && location.pathname === '/discover' && link.label === 'Khám phá') ||
-                  (link.to === '/matches' && location.pathname === '/matches' && (link.label === 'Tin nhắn' || link.label === 'Tương hợp')) ||
-                  (link.to === '/video-chat' && location.pathname === '/video-chat' && link.label === 'Random Video');
-
+              {navLinks.map((link) => {
                 const isHighlighted =
-                  (link.label === 'Khám phá' && location.pathname === '/discover') ||
-                  (link.label === 'Tin nhắn' && location.pathname === '/matches') ||
-                  (link.label === 'Random Video' && location.pathname === '/video-chat');
+                  (link.label === 'Khám phá' && isDiscover) ||
+                  (link.label === 'Tin nhắn' && isMessages) ||
+                  (link.label === 'Tương hợp' && isMatches) ||
+                  (link.label === 'Random Video' && isVideo);
 
                 return (
                   <Link
@@ -69,12 +65,12 @@ const Navbar = () => {
                 );
               })}
               <Link
-                to="/profile"
-                className={`px-5 py-2 text-sm font-medium transition-all ${location.pathname === '/profile'
+                to="/safety"
+                className={`px-5 py-2 text-sm font-medium transition-all ${isSafety
                   ? 'text-gray-900'
                   : 'text-gray-500 hover:text-gray-800'
                   }`}
-                style={location.pathname === '/profile' ? { borderBottom: '2px solid #f43f5e' } : {}}
+                style={isSafety ? { borderBottom: '2px solid #f43f5e' } : {}}
               >
                 An toàn
               </Link>
