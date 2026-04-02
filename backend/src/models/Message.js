@@ -73,7 +73,9 @@ const messageSchema = new mongoose.Schema({
 
 // Indexes
 messageSchema.index({ conversationId: 1, createdAt: -1 });
+messageSchema.index({ matchId: 1, createdAt: -1 }); // Query by matchId
 messageSchema.index({ senderId: 1 });
+messageSchema.index({ 'senderId': 1, 'isRead': 1 }); // Unread messages
 
 // Virtual: lấy sender ID (backward compatible)
 messageSchema.virtual('senderField').get(function() {
