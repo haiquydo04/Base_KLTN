@@ -43,8 +43,7 @@ const userProfileSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: [true, 'User ID is required'],
-    unique: true,
-    index: true
+    unique: true
   },
   fullName: {
     type: String,
@@ -81,8 +80,7 @@ const userProfileSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for efficient queries
-userProfileSchema.index({ userId: 1 });
+// Index already created by `index: true` on userId field above
 
 // Virtual field: calculate age from dateOfBirth
 userProfileSchema.virtual('age').get(function() {

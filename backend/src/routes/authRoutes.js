@@ -26,6 +26,10 @@ const generateToken = (id) => {
 // ============ SOCIAL AUTH ROUTES ============
 
 router.get('/google',
+  (req, res, next) => {
+    console.log('🔵 Google OAuth started, callbackURL:', config.google?.callbackURL);
+    next();
+  },
   passport.authenticate('google', {
     scope: ['profile', 'email'],
     prompt: 'select_account'
@@ -33,13 +37,57 @@ router.get('/google',
 );
 
 router.get('/google/callback',
-  passport.authenticate('google', {
-    failureRedirect: `${config.frontendUrl}/login?error=google_auth_failed`,
-    session: false
-  }),
+  (req, res, next) => {
+    console.log('🔵 Google callback received');
+    console.log('   Query params:', req.query);
+    console.log('   Error param:', req.query.error);
+    console.log('   Error description:', req.query.error_description);
+    
+    if (req.query.error) {
+      const errorMessages = {
+        'access_denied': 'You denied access to the application',
+        'unauthorized_client': 'The client is not authorized to request this code',
+        'invalid_client': 'Client authentication failed',
+        'invalid_scope': 'The requested scope is invalid',
+        'server_error': 'Google server error, please try again',
+        'temporarily_unavailable': 'Google is temporarily unavailable, please try again'
+      };
+      const message = errorMessages[req.query.error] || req.query.error_description || 'OAuth error';
+      console.error('❌ Google OAuth error:', message);
+      return res.redirect(`${config.frontendUrl}/login?error=${encodeURIComponent(message)}`);
+    }
+    next();
+  },
+  (req, res, next) => {
+    passport.authenticate('google', {
+      failureRedirect: `${config.frontendUrl}/login?error=google_auth_failed`,
+      failureFlash: true,
+      session: false
+    })(req, res, (err) => {
+      if (err) {
+        console.error('❌ Passport authenticate error:', err.message);
+        return res.redirect(`${config.frontendUrl}/login?error=${encodeURIComponent(err.message)}`);
+      }
+      next();
+    });
+  },
   (req, res) => {
-    const token = generateToken(req.user._id);
-    res.redirect(`${config.frontendUrl}/auth/callback?token=${token}&provider=google`);
+    console.log('✅ Google auth success');
+    console.log('   User:', req.user?.username, req.user?._id);
+    
+    if (!req.user) {
+      console.error('❌ Google auth failed: No user in request');
+      return res.redirect(`${config.frontendUrl}/login?error=no_user`);
+    }
+
+    try {
+      const token = generateToken(req.user._id);
+      console.log('   JWT token generated');
+      res.redirect(`${config.frontendUrl}/auth/callback?token=${token}&provider=google`);
+    } catch (error) {
+      console.error('❌ Error generating token:', error.message);
+      res.redirect(`${config.frontendUrl}/login?error=token_generation_failed`);
+    }
   }
 );
 

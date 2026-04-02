@@ -42,11 +42,13 @@ const userSchema = new mongoose.Schema({
   facebookId: {
     type: String,
     sparse: true,
+    unique: true,
     default: null
   },
   googleId: {
     type: String,
     sparse: true,
+    unique: true,
     default: null
   },
   loginMethod: {
@@ -86,7 +88,23 @@ const userSchema = new mongoose.Schema({
   interests: [{
     type: String
   }],
+  
+  // GeoJSON Location (for geospatial queries)
+  // IMPORTANT: Must be null array [0, 0] for 2dsphere index to work properly
+  // Set to null array initially so user can update location later
   location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number],
+      default: [0, 0]  // Default to [0, 0] so 2dsphere index works
+    }
+  },
+  // Text location for display (e.g., "Can Tho")
+  locationText: {
     type: String,
     default: ''
   },
@@ -222,10 +240,10 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes
+// Note: email, facebookId, googleId indexes are auto-created by `unique: true`
 userSchema.index({ username: 'text' });
-userSchema.index({ email: 1 });
-userSchema.index({ facebookId: 1 });
-userSchema.index({ googleId: 1 });
+// Geospatial index for location-based queries
+userSchema.index({ location: '2dsphere' });
 
 // Virtual field để backward compatibility
 userSchema.virtual('password_field').get(function() {
@@ -255,7 +273,14 @@ userSchema.methods.calculateProfileCompletion = function() {
   if (user.avatar && user.avatar.trim() !== '') score += 20;
   if (user.bio && user.bio.trim() !== '') score += 10;
   if (user.age) score += 10;
-  if (user.location && user.location.trim() !== '') score += 10;
+  // Safe check for GeoJSON location - must be array with 2 valid coordinates
+  // and not be the default [0, 0] which indicates unset location
+  if (user.location?.coordinates && 
+      Array.isArray(user.location.coordinates) && 
+      user.location.coordinates.length === 2 &&
+      !(user.location.coordinates[0] === 0 && user.location.coordinates[1] === 0)) {
+    score += 10;
+  }
   if (user.interests && user.interests.length > 0) score += 10;
   if (user.photos && user.photos.length >= 2) score += 20;
   if (user.occupation && user.occupation.trim() !== '') score += 10;

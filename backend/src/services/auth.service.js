@@ -64,7 +64,7 @@ export const registerUser = async ({ username, email, password, confirmPassword 
       gender: '',
       avatar: null,
       bio: '',
-      location: '',
+      location: null,
       interests: [],
       photos: [],
       profileCompletion: 0
