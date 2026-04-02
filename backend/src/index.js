@@ -68,7 +68,11 @@ app.use('/api', interestRoutes); // PB07: Quản lý sở thích cá nhân
 app.use(notFound);
 app.use(errorHandler);
 
+// Initialize socket first
 initializeSocket(io);
+
+// Attach io to app for access in controllers
+app.set('io', io);
 
 const startServer = async () => {
   try {
