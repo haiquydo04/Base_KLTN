@@ -5,6 +5,7 @@ import messageRoutes from './messageRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import userProfileRoutes from './userProfile.routes.js';
 import discoveryRoutes from './discovery.routes.js';
+import interestRoutes from './interest.routes.js';
 
 export {
   authRoutes,
@@ -13,5 +14,6 @@ export {
   messageRoutes,
   adminRoutes,
   userProfileRoutes,
-  discoveryRoutes
+  discoveryRoutes,
+  interestRoutes
 };
