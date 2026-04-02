@@ -74,8 +74,8 @@ export const userService = {
     return response.data;
   },
 
-  getRecommendedUsers: async () => {
-    const response = await api.get('/users/recommendations');
+  getRecommendedUsers: async (refresh = false) => {
+    const response = await api.get(`/users/recommendations?refresh=${refresh}`);
     return response.data;
   },
 
@@ -133,21 +133,25 @@ export const matchService = {
 };
 
 export const messageService = {
+  // GET /api/messages/conversations: lay danh sach cuoc tro chuyen
   getConversations: async () => {
     const response = await api.get('/messages/conversations');
     return response.data;
   },
 
+  // GET /api/messages/:matchId: lay tin nhan theo cuoc tro chuyen
   getMessages: async (matchId, page = 1, limit = 50) => {
     const response = await api.get(`/messages/${matchId}?page=${page}&limit=${limit}`);
     return response.data;
   },
 
+  // POST /api/messages/:matchId: gui tin nhan moi
   sendMessage: async (matchId, data) => {
     const response = await api.post(`/messages/${matchId}`, data);
     return response.data;
   },
 
+  // PUT /api/messages/:matchId/read: danh dau tin nhan da doc
   markAsRead: async (matchId) => {
     const response = await api.put(`/messages/${matchId}/read`);
     return response.data;
