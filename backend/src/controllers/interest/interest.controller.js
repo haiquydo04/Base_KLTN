@@ -3,8 +3,8 @@
  * Handles HTTP requests cho việc quản lý tags và user interests
  */
 
-import interestService from '../services/interest.service.js';
-import { sendSuccess, sendError, sendValidationError } from '../utils/apiResponse.js';
+import interestService from '../../services/interest.service.js';
+import { sendSuccess, sendError, sendValidationError } from '../../utils/apiResponse.js';
 
 /**
  * GET /api/tags
