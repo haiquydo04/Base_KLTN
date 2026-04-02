@@ -30,8 +30,8 @@ const tagSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes
-tagSchema.index({ name: 1 }, { unique: true });
+// Indexes - name has unique: true in schema, auto-creates index
+// Additional indexes for querying
 tagSchema.index({ category: 1 });
 tagSchema.index({ usageCount: -1 });
 
