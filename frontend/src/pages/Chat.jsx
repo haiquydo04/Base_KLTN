@@ -442,14 +442,7 @@ const Chat = () => {
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
             </div>
-          ) : messages.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
-                <span className="text-3xl">👋</span>
-              </div>
-              <p className="text-gray-400">No messages yet. Say hello!</p>
-            </div>
-          ) : (
+          ) : messages.length === 0 ? null : (
             messages.map((message, index) => {
               const isOwnMessage = message.sender?._id === user?._id || message.sender === user?._id;
 
@@ -496,24 +489,55 @@ const Chat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="bg-gray-800 border-t border-gray-700 p-4">
-        <form onSubmit={sendMessage} className="max-w-lg mx-auto flex items-center gap-3">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={handleTyping}
-            placeholder="Type a message..."
-            className="flex-1 px-5 py-3 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-2xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
-          />
-          <button
-            type="submit"
-            disabled={!newMessage.trim() || sending}
-            className="p-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl hover:from-pink-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-          </button>
+      <div className="bg-white border-t border-gray-200 px-4 py-4">
+        <form onSubmit={sendMessage} className="max-w-3xl mx-auto">
+          <div className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-gray-600">Zz</span>
+            <span>{otherUser?.fullName || otherUser?.username || 'User'} has paused their notifications</span>
+          </div>
+
+          <div className="mt-3 border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 text-gray-500">
+              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100 font-semibold">B</button>
+              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100 italic">I</button>
+              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100 underline">U</button>
+              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">S</button>
+              <span className="w-px h-5 bg-gray-200 mx-1" />
+              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">1</button>
+              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">•</button>
+              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">≡</button>
+              <span className="w-px h-5 bg-gray-200 mx-1" />
+              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">&lt;/&gt;</button>
+              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">&lt;/&gt;</button>
+            </div>
+
+            <textarea
+              rows={3}
+              value={newMessage}
+              onChange={handleTyping}
+              placeholder="Nhập tin nhắn..."
+              className="w-full px-4 py-3 text-gray-800 placeholder-gray-400 resize-none focus:outline-none"
+            />
+
+            <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 text-gray-500">
+              <div className="flex items-center gap-3">
+                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">+</button>
+                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">Aa</button>
+                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">😊</button>
+                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">@</button>
+                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">📹</button>
+                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">🎤</button>
+                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">▢</button>
+              </div>
+              <button
+                type="submit"
+                disabled={!newMessage.trim() || sending}
+                className="px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Gửi
+              </button>
+            </div>
+          </div>
         </form>
       </div>
     </div>
