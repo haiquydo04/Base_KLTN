@@ -36,7 +36,7 @@ const Chat = () => {
     try {
       setLoading(true);
       const response = await messageService.getMessages(matchId);
-      setMessages(response.messages || []);
+      setMessages(response.data || []);
 
       const matches = await userService.getMatches();
       const match = matches.matches?.find(m => m._id === matchId);

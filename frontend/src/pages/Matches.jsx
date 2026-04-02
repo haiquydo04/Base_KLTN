@@ -15,7 +15,7 @@ const Matches = () => {
     try {
       setLoading(true);
       const response = await userService.getMatches();
-      setMatches(response.matches || []);
+      setMatches(response.data || []);
       setError('');
     } catch (err) {
       console.error('Error fetching matches:', err);

@@ -36,7 +36,7 @@ const Messages = () => {
     try {
       setLoadingConversations(true);
       const response = await messageService.getConversations();
-      const list = response.conversations || [];
+      const list = response.data || [];
       setConversations(Array.isArray(list) ? list : []);
       setError('');
       if (!selectedId && list?.length) {
@@ -55,7 +55,7 @@ const Messages = () => {
     try {
       setLoadingMessages(true);
       const response = await messageService.getMessages(matchId);
-      setMessages(Array.isArray(response.messages) ? response.messages : []);
+      setMessages(Array.isArray(response.data) ? response.data : []);
       await messageService.markAsRead(matchId).catch(() => {});
     } catch (err) {
       console.error('Error fetching messages:', err);
@@ -96,7 +96,7 @@ const Messages = () => {
         content: newMessage.trim(),
         type: 'text'
       });
-      const newMsg = response.message || {
+      const newMsg = response.data || {
         _id: Date.now().toString(),
         content: newMessage.trim(),
         sender: { _id: user?._id, username: user?.username, avatar: user?.avatar },
