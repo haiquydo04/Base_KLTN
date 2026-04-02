@@ -6,8 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { getCurrentLocation } from '../services/locationService';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import api from '../services/api';
 
 const Discovery = () => {
   const { token } = useAuthStore();
@@ -32,16 +31,9 @@ const Discovery = () => {
         setLocationDenied(false);
 
         // Step 2: Update location on server
-        await fetch(`${API_URL}/api/update-location`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            latitude: location.latitude,
-            longitude: location.longitude
-          })
+        await api.post('/update-location', {
+          latitude: location.latitude,
+          longitude: location.longitude
         });
 
         // Step 3: Fetch nearby users
@@ -57,24 +49,16 @@ const Discovery = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, radius]);
+  }, [radius]);
 
   // Fetch nearby users from API
   const fetchNearbyUsers = async (lat, lng, searchRadius) => {
     try {
-      const response = await fetch(
-        `${API_URL}/api/discovery?lat=${lat}&lng=${lng}&radius=${searchRadius}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const response = await api.get('/discovery', {
+        params: { lat, lng, radius: searchRadius }
+      });
 
-      if (!response.ok) throw new Error('Failed to fetch users');
-
-      const data = await response.json();
-      setUsers(data.data?.users || []);
+      setUsers(response.data?.users || []);
     } catch (err) {
       console.error('Error fetching nearby users:', err);
       throw err;
