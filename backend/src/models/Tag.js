@@ -13,7 +13,17 @@ const tagSchema = new mongoose.Schema({
   },
   category: {
     type: String,
+    enum: ['interest', 'occupation', 'location', 'general'],
     default: 'general'
+  },
+  status: {
+    type: String,
+    enum: ['active', 'hidden'],
+    default: 'active'
+  },
+  description: {
+    type: String,
+    default: ''
   },
   icon: {
     type: String,

@@ -34,4 +34,19 @@ router.put('/users/:id/status', authenticate, authorizeAdmin, toggleUserStatus);
 // Yêu cầu: Header Authorization: Bearer <token>, Role: admin
 router.put('/users/:id/role', authenticate, authorizeAdmin, updateUserRole);
 
+// --- Route Quản lý Danh mục (PB20) ---
+import {
+  getCategories,
+  addCategory,
+  updateCategory,
+  deleteCategory,
+  toggleCategoryStatus
+} from '../controllers/admin/adminCategoryController.js';
+
+router.get('/categories', authenticate, authorizeAdmin, getCategories);
+router.post('/categories', authenticate, authorizeAdmin, addCategory);
+router.put('/categories/:id', authenticate, authorizeAdmin, updateCategory);
+router.delete('/categories/:id', authenticate, authorizeAdmin, deleteCategory);
+router.put('/categories/:id/status', authenticate, authorizeAdmin, toggleCategoryStatus);
+
 export default router;
