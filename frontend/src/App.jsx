@@ -12,9 +12,11 @@ import Home from './pages/Home';
 import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
 import Matches from './pages/Matches';
+import Messages from './pages/Messages';
 import Chat from './pages/Chat';
 import Discover from './pages/Discover';
 import RandomVideoChat from './pages/RandomVideoChat';
+import Safety from './pages/Safety';
 import AuthCallback from './pages/AuthCallback';
 
 const ProtectedRoute = ({ children }) => {
@@ -99,6 +101,14 @@ function App() {
             } 
           />
           <Route 
+            path="/messages" 
+            element={
+              <ProtectedRoute>
+                <Messages />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
             path="/chat/:matchId" 
             element={
               <ProtectedRoute>
@@ -111,6 +121,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/safety" 
+            element={
+              <ProtectedRoute>
+                <Safety />
               </ProtectedRoute>
             } 
           />
