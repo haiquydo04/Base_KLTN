@@ -81,7 +81,11 @@ passport.deserializeUser(async (id, done) => {
 
 // Helper to update user with social login info
 const linkSocialAccount = async (user, profile, provider, photos) => {
-  user.googleId = profile.id;
+  if (provider === 'google') {
+    user.googleId = profile.id;
+  } else if (provider === 'facebook') {
+    user.facebookId = profile.id;
+  }
   user.loginMethod = provider;
   user.isEmailVerified = true;
   if (photos?.[0]?.value && !user.avatar) {
@@ -95,16 +99,43 @@ const linkSocialAccount = async (user, profile, provider, photos) => {
 
 // Google Strategy - chỉ khởi tạo nếu có credentials
 if (config.google?.clientID && config.google?.clientSecret) {
-  passport.use(new GoogleStrategy({
+  console.log('🔑 Google OAuth Config:', {
+    clientID: config.google.clientID.substring(0, 20) + '...',
+    callbackURL: config.google.callbackURL
+  });
+
+  passport.use('google', new GoogleStrategy({
     clientID: config.google.clientID,
     clientSecret: config.google.clientSecret,
     callbackURL: config.google.callbackURL,
     proxy: true
-  }, async (accessToken, refreshToken, profile, done) => {
+  }, async (accessToken, refreshToken, params, profile, done) => {
+    console.log('🔵 Google OAuth Callback received');
+    console.log('   Profile ID:', profile?.id);
+    console.log('   Display Name:', profile?.displayName);
+    console.log('   Has Email:', !!profile?.emails?.[0]?.value);
+    console.log('   Email:', profile?.emails?.[0]?.value);
+
     try {
+      // Guard against missing profile
+      if (!profile || !profile.id) {
+        console.error('❌ Google OAuth Error: Missing profile or profile ID');
+        return done(new Error('Invalid Google profile: missing ID'), null);
+      }
+
+      // Guard against invalid email (Google should always provide email with 'email' scope)
+      if (!profile.emails || !profile.emails[0]?.value) {
+        console.error('❌ Google OAuth Error: No email in profile. Check Google Cloud Console scope settings.');
+        return done(new Error('Google profile missing email. Please ensure "email" scope is enabled in Google Cloud Console.'), null);
+      }
+
+      const email = profile.emails[0].value;
+      const photoUrl = profile.photos?.[0]?.value;
+
       // Check if user already linked with this Google ID
       const existingUser = await User.findOne({ googleId: profile.id });
       if (existingUser) {
+        console.log('   Found existing user by Google ID:', existingUser.username);
         existingUser.lastLogin = new Date();
         existingUser.isOnline = true;
         existingUser.failedAttempts = 0;
@@ -112,12 +143,11 @@ if (config.google?.clientID && config.google?.clientSecret) {
         return done(null, existingUser);
       }
 
-      const email = profile.emails?.[0]?.value;
-      
       // Check if user exists with same email
       if (email) {
         const userByEmail = await User.findOne({ email: email.toLowerCase() });
         if (userByEmail) {
+          console.log('   Found existing user by email, linking Google ID...');
           await linkSocialAccount(userByEmail, profile, 'google', profile.photos);
           return done(null, userByEmail);
         }
@@ -125,27 +155,36 @@ if (config.google?.clientID && config.google?.clientSecret) {
 
       // Create new user with safe username
       const safeUsername = await generateSafeUsername(
-        profile.displayName || profile.emails?.[0]?.value || 'user',
+        profile.displayName || email || 'user',
         'google'
       );
 
-      const newUser = await User.create({
+      console.log('   Creating new user with username:', safeUsername);
+
+      // Create user - location will use default values [0, 0]
+      const newUser = new User({
         googleId: profile.id,
-        email: email?.toLowerCase(),
+        email: email.toLowerCase(),
         username: safeUsername,
-        fullName: profile.displayName,
-        avatar: profile.photos?.[0]?.value || '',
+        fullName: profile.displayName || '',
+        avatar: photoUrl || '',
         loginMethod: 'google',
         isEmailVerified: true,
         passwordHash: 'SOCIAL_LOGIN_' + Date.now()
+        // location uses default: { type: 'Point', coordinates: [0, 0] }
       });
 
-      newUser.lastLogin = new Date();
-      newUser.isOnline = true;
       await newUser.save({ validateBeforeSave: false });
 
+      console.log('✅ New user created successfully:', newUser.username);
       done(null, newUser);
     } catch (error) {
+      console.error('❌ Google OAuth Error:', {
+        message: error.message,
+        code: error.code,
+        name: error.name,
+        errors: error.errors
+      });
       done(error, null);
     }
   }));
