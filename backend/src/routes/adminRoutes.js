@@ -49,4 +49,17 @@ router.put('/categories/:id', authenticate, authorizeAdmin, updateCategory);
 router.delete('/categories/:id', authenticate, authorizeAdmin, deleteCategory);
 router.put('/categories/:id/status', authenticate, authorizeAdmin, toggleCategoryStatus);
 
+// --- Route Dashboard (PB18) ---
+import {
+  getDashboardStats,
+  getUserGrowth,
+  getGenderDistribution,
+  getRecentUsers
+} from '../controllers/admin/adminDashboardController.js';
+
+router.get('/dashboard/stats', authenticate, authorizeAdmin, getDashboardStats);
+router.get('/dashboard/growth', authenticate, authorizeAdmin, getUserGrowth);
+router.get('/dashboard/gender', authenticate, authorizeAdmin, getGenderDistribution);
+router.get('/dashboard/recent-users', authenticate, authorizeAdmin, getRecentUsers);
+
 export default router;
