@@ -13,7 +13,7 @@ const LandingPage = () => {
     { id: 'discover', label: 'Khám phá' },
     { id: 'about', label: 'Về chúng tôi' },
     { id: 'support', label: 'Hỗ trợ' },
-    { id: 'community', label: 'Nguyên tắc cộng đồng' },
+    { id: 'community', label: 'Nguyên tắcc cộng đồng' },
   ];
 
   const ruleMenu = [
