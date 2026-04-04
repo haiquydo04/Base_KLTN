@@ -13,7 +13,7 @@ const LandingPage = () => {
     { id: 'discover', label: 'Khám phá' },
     { id: 'about', label: 'Về chúng tôi' },
     { id: 'support', label: 'Hỗ trợ' },
-    { id: 'community', label: 'Nguyên tắcc cộng đồng' },
+    { id: 'community', label: 'Nguyên tắc cộng đồng' },
   ];
 
   const ruleMenu = [
@@ -247,7 +247,7 @@ const LandingPage = () => {
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight text-gray-900">
                   Tìm Thấy
                   <span className="block bg-gradient-to-r from-primary-600 to-secondary-500 bg-clip-text text-transparent italic">
-                    Tình Yêu Đích Thực hong phải đít giả
+                    Tình Yêu Đích Thực 
                   </span>
                   <span className="block">Nhờ Trí Tuệ Nhân Tạo.</span>
                 </h1>
