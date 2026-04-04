@@ -175,13 +175,11 @@ function generateUsers(count = 50) {
 }
 
 function generateTags() {
-  const tagNames = [
-    'Du lich', 'Nhiep anh', 'Am thuc', 'Am nhac', 'Doc sach', 'Phim anh',
-    'Yoga', 'Thien', 'Game', 'Bong da', 'Cau long', 'Nau an', 'Gym', 'Golf',
-    'K-pop', 'Manga', 'Shopping', 'Ca phe', 'Thien nhien', 'Khieu vu', 'Ca hoac'
-  ];
+  const tagsInterests = interestsList.map(name => ({ name, category: 'interest', status: 'active' }));
+  const tagsOccupations = occupations.map(name => ({ name, category: 'occupation', status: 'active' }));
+  const tagsLocations = locations.map(name => ({ name, category: 'location', status: 'active' }));
   
-  return tagNames.map(name => ({ name, category: 'general' }));
+  return [...tagsInterests, ...tagsOccupations, ...tagsLocations];
 }
 
 function generateSwipes(users, count = 300) {
