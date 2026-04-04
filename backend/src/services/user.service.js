@@ -103,7 +103,7 @@ export const getUserMatches = async (userId) => {
   return { matches: populatedMatches };
 };
 
-export const getRecommendedUsers = async (userId) => {
+export const getRecommendedUsers = async (userId, { refresh = false } = {}) => {
   const currentUser = await User.findById(userId);
   if (!currentUser) return { error: 'User not found', status: 404 };
 
@@ -115,11 +115,21 @@ export const getRecommendedUsers = async (userId) => {
     m.user1Id?.toString() === userId.toString() ? m.user2Id : m.user1Id
   );
 
-  const excludeIds = [...new Set([
-    userId.toString(),
-    ...swipedUserIds.map(id => id.toString()),
-    ...matchedUserIds.map(id => id?.toString()).filter(Boolean)
-  ])];
+  let excludeIds;
+  if (refresh) {
+    // Nếu refresh, chỉ loại bỏ bản thân và những người đã match
+    excludeIds = [...new Set([
+      userId.toString(),
+      ...matchedUserIds.map(id => id?.toString()).filter(Boolean)
+    ])];
+  } else {
+    // Bình thường: loại bỏ người đã swipe và đã match
+    excludeIds = [...new Set([
+      userId.toString(),
+      ...swipedUserIds.map(id => id.toString()),
+      ...matchedUserIds.map(id => id?.toString()).filter(Boolean)
+    ])];
+  }
 
   const query = buildUserQuery(currentUser, excludeIds);
 
