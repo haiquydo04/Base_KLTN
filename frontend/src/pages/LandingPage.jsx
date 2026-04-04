@@ -11,7 +11,7 @@ const LandingPage = () => {
 
   const navItems = [
     { id: 'discover', label: 'Khám phá' },
-    { id: 'about', label: 'Về chúng tôi' },
+    { id: 'about', label: 'Về chúng tôii' },
     { id: 'support', label: 'Hỗ trợ' },
     { id: 'community', label: 'Nguyên tắc cộng đồng' },
   ];
