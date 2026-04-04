@@ -247,7 +247,7 @@ const LandingPage = () => {
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight text-gray-900">
                   Tìm Thấy
                   <span className="block bg-gradient-to-r from-primary-600 to-secondary-500 bg-clip-text text-transparent italic">
-                    Tình Yêu Đích Thực
+                    Tình Yêu Đích Thực hong phải đít giả
                   </span>
                   <span className="block">Nhờ Trí Tuệ Nhân Tạo.</span>
                 </h1>
