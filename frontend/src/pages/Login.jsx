@@ -12,16 +12,36 @@ const Login = () => {
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) {
+      return 'Email là bắt buộc';
+    }
+    if (!emailRegex.test(email)) {
+      return 'Email không đúng định dạng';
+    }
+    return '';
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === 'email') {
+      setEmailError('');
+    }
     if (error) clearError();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const emailErr = validateEmail(formData.email);
+    if (emailErr) {
+      setEmailError(emailErr);
+      return;
+    }
     try {
       await login(formData);
       navigate('/discover');
@@ -128,11 +148,13 @@ const Login = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className="w-full h-11 rounded-full bg-primary-50 border border-primary-100 pl-11 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                        onBlur={() => setEmailError(validateEmail(formData.email))}
+                        className={`w-full h-11 rounded-full bg-primary-50 border pl-11 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-300 ${emailError ? 'border-red-500' : 'border-primary-100'}`}
                         placeholder="email@vi-du.com"
                         required
                       />
                     </div>
+                    {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
                   </div>
 
                   <div>
