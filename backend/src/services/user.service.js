@@ -288,42 +288,21 @@ export const getRecommendedUsers = async (userId, options = {}) => {
     User.countDocuments({}) // Count ALL users
   ]);
 
-  const swipedUserIds = swipedByMe.map(s => s.swipedId?.toString()).filter(Boolean);
-  const matchedUserIds = myMatches.map(m => {
-    if (m.user1Id?.toString() === userId.toString()) {
-      return m.user2Id?.toString();
-    }
-    return m.user1Id?.toString();
-  }).filter(Boolean);
-
-  console.log('[getRecommendedUsers] 📊 Stats:');
-  console.log('  - Total users in DB:', totalUsers);
-  console.log('  - Users swiped by me:', swipedUserIds.length);
-  console.log('  - My matches:', matchedUserIds.length);
-
-  // ============================================
-  // 🐛 FIX: Logic excludeIds - đảm bảo tất cả là string
-  // ============================================
-  let excludeIds = [userId.toString()]; // Luôn loại chính mình
-
-  if (!options.refresh) {
-    // Không refresh: loại cả swipe + match
-    excludeIds = [...excludeIds, ...matchedUserIds, ...swipedUserIds];
+  let excludeIds;
+  if (refresh) {
+    // Nếu refresh, chỉ loại bỏ bản thân và những người đã match
+    excludeIds = [...new Set([
+      userId.toString(),
+      ...matchedUserIds.map(id => id?.toString()).filter(Boolean)
+    ])];
   } else {
-    // Refresh: chỉ loại chính mình + match (để thấy lại users đã pass)
-    excludeIds = [...excludeIds, ...matchedUserIds];
+    // Bình thường: loại bỏ người đã swipe và đã match
+    excludeIds = [...new Set([
+      userId.toString(),
+      ...swipedUserIds.map(id => id.toString()),
+      ...matchedUserIds.map(id => id?.toString()).filter(Boolean)
+    ])];
   }
-
-  // Ensure all IDs are strings (prevent object→string serialization)
-  excludeIds = excludeIds
-    .map(id => id?.toString?.() || String(id))
-    .filter(id => id && id.length === 24); // Valid ObjectId length
-
-  // Remove duplicates
-  excludeIds = [...new Set(excludeIds)];
-
-  console.log('[getRecommendedUsers] 🚫 Exclude IDs:', excludeIds.length);
-  console.log('  (excluding self +', options.refresh ? 'matches' : 'matches + swipes', ')');
 
   // Build query
   const query = buildUserQuery(currentUser, excludeIds);
