@@ -115,17 +115,40 @@ const Messages = () => {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
-  const lastMessagePreview = (conv) => {
-    const last = conv.messages[conv.messages.length - 1];
-    if (!last) return 'No messages yet';
-    if (last.type === 'image') return 'Sent an image';
-    return last.content;
+  const fetchConversations = async () => {
+    try {
+      setLoadingConversations(true);
+      const response = await messageService.getConversations();
+      // Backend trả về { success: true, data: [...], total: n }
+      const list = response.data || response.conversations || [];
+      setConversations(Array.isArray(list) ? list : []);
+      setError('');
+      if (!selectedId && list?.length) {
+        setSelectedId(getConversationId(list[0]));
+      }
+    } catch (err) {
+      console.error('Error fetching conversations:', err);
+      setError('Không thể tải danh sách cuộc trò chuyện');
+    } finally {
+      setLoadingConversations(false);
+    }
   };
 
-  const scrollToBottom = () => {
-    const container = messagesRef.current;
-    if (!container) return;
-    container.scrollTop = container.scrollHeight;
+  const fetchMessages = async (matchId) => {
+    if (!matchId) return;
+    try {
+      setLoadingMessages(true);
+      const response = await messageService.getMessages(matchId);
+      // Backend trả về { success: true, messages: [...], pagination: {...} }
+      const msgs = response.messages || response.data || [];
+      setMessages(Array.isArray(msgs) ? msgs : []);
+      await messageService.markAsRead(matchId).catch(() => {});
+    } catch (err) {
+      console.error('Error fetching messages:', err);
+      setError('Không thể tải tin nhắn');
+    } finally {
+      setLoadingMessages(false);
+    }
   };
 
   useEffect(() => {
@@ -158,61 +181,33 @@ const Messages = () => {
     }));
   };
 
-  const simulateReply = (conversationId) => {
-    const replies = [
-      'Nice! I like that idea.',
-      'Sounds good to me.',
-      'Haha that made my day.',
-      'Can we talk more tonight?',
-      'I am here now.',
-    ];
-
-    const reply = {
-      id: makeId(),
-      sender: 'them',
-      type: 'text',
-      content: replies[Math.floor(Math.random() * replies.length)],
-      createdAt: new Date().toISOString(),
-    };
-
-    setTimeout(() => {
-      pushMessage(conversationId, reply);
-    }, 1100 + Math.random() * 1200);
-  };
-
-  const sendMessage = ({ type, content, imageUrl }) => {
-    if (!activeConversation) return;
-    if (type === 'text' && !content.trim()) return;
-
-    const newMsg = {
-      id: makeId(),
-      sender: 'me',
-      type,
-      content: content.trim(),
-      imageUrl,
-      createdAt: new Date().toISOString(),
-      status: 'sent',
-      senderName: user?.fullName || user?.username || 'You',
-    };
-
-    pushMessage(activeConversation.id, newMsg);
-    setMessageText('');
-    setShowEmojiPicker(false);
-
-    setTimeout(() => updateMessageStatus(activeConversation.id, newMsg.id, 'received'), 700);
-    setTimeout(() => updateMessageStatus(activeConversation.id, newMsg.id, 'viewed'), 2200);
-    simulateReply(activeConversation.id);
-  };
-
-  const handleSendText = (event) => {
-    event.preventDefault();
-    sendMessage({ type: 'text', content: messageText, imageUrl: null });
-  };
-
-  const handleKeyDown = (event) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      sendMessage({ type: 'text', content: messageText, imageUrl: null });
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !selectedId || sending) return;
+    setSending(true);
+    try {
+      const response = await messageService.sendMessage(selectedId, {
+        content: newMessage.trim(),
+        type: 'text'
+      });
+      // Backend trả về { success: true, message: {...} }
+      const newMsg = response.message || response.data || {
+        _id: Date.now().toString(),
+        content: newMessage.trim(),
+        sender: { _id: user?._id, username: user?.username, avatar: user?.avatar },
+        createdAt: new Date().toISOString()
+      };
+      setMessages((prev) => [...prev, newMsg]);
+      setNewMessage('');
+      setConversations((prev) => prev.map((c) => {
+        if (getConversationId(c) !== selectedId) return c;
+        return { ...c, lastMessage: newMsg };
+      }));
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError('Không thể gửi tin nhắn');
+    } finally {
+      setSending(false);
     }
   };
 

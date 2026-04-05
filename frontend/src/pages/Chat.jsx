@@ -148,20 +148,19 @@ const Chat = () => {
 
     setSending(true);
     try {
+      // Backend expects: POST /messages/:matchId with body { content, type }
       await messageService.sendMessage(matchId, {
         content: newMessage.trim(),
         type: 'text'
       });
 
-      socket?.emit('send_message', {
-        matchId,
-        content: newMessage.trim(),
-        type: 'text'
-      });
-
+      // Clear input
       setNewMessage('');
-      socket?.emit('stop_typing', { matchId });
       setIsTyping(false);
+      socket?.emit('stop_typing', { matchId });
+
+      // Refresh messages
+      fetchMessages();
     } catch (err) {
       console.error('Error sending message:', err);
     } finally {

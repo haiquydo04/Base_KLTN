@@ -176,8 +176,20 @@ const Matches = () => {
   const [toast, setToast] = useState('');
   const [lastLoadFailed, setLastLoadFailed] = useState(false);
 
-  const observerRef = useRef(null);
-  const isRateLimitedRef = useRef(false);
+  const fetchMatches = async () => {
+    try {
+      setLoading(true);
+      const response = await userService.getMatches();
+      // Backend trả về { success: true, matches: [...] }
+      setMatches(response.matches || response.data?.matches || []);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching matches:', err);
+      setError('Failed to load matches');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;

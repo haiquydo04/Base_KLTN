@@ -5,8 +5,15 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { getProfileDetail, getProfile } from '../controllers/profile/profile.controller.js';
+import { getProfileStats } from '../controllers/profile/profileStats.controller.js';
 
 const router = Router();
+
+/**
+ * GET /api/profile/stats
+ * Get profile completion stats (requires auth)
+ */
+router.get('/stats', authenticate, getProfileStats);
 
 /**
  * GET /api/v1/profiles/:userId/full
