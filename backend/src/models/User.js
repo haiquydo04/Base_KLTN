@@ -38,18 +38,15 @@ const userSchema = new mongoose.Schema({
     select: false
   },
   
-  // Social login
+  // Social login - KHÔNG có default: null để tránh sparse index issues
+  // Khi không có giá trị, field sẽ không tồn tại trong document
   facebookId: {
     type: String,
-    sparse: true,
-    unique: true,
-    default: null
+    sparse: true
   },
   googleId: {
     type: String,
-    sparse: true,
-    unique: true,
-    default: null
+    sparse: true
   },
   loginMethod: {
     type: String,

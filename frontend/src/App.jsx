@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { MatchNotificationProvider } from './components/MatchNotification';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -51,7 +52,8 @@ function App() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <Routes>
+        <MatchNotificationProvider>
+          <Routes>
           <Route 
             path="/login" 
             element={
@@ -165,6 +167,7 @@ function App() {
             element={<Navigate to="/discover" replace />} 
           />
         </Routes>
+        </MatchNotificationProvider>
       </SocketProvider>
     </AuthProvider>
   );

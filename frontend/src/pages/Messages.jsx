@@ -36,7 +36,8 @@ const Messages = () => {
     try {
       setLoadingConversations(true);
       const response = await messageService.getConversations();
-      const list = response.data || [];
+      // Backend trả về { success: true, data: [...], total: n }
+      const list = response.data || response.conversations || [];
       setConversations(Array.isArray(list) ? list : []);
       setError('');
       if (!selectedId && list?.length) {
@@ -55,7 +56,9 @@ const Messages = () => {
     try {
       setLoadingMessages(true);
       const response = await messageService.getMessages(matchId);
-      setMessages(Array.isArray(response.data) ? response.data : []);
+      // Backend trả về { success: true, messages: [...], pagination: {...} }
+      const msgs = response.messages || response.data || [];
+      setMessages(Array.isArray(msgs) ? msgs : []);
       await messageService.markAsRead(matchId).catch(() => {});
     } catch (err) {
       console.error('Error fetching messages:', err);
@@ -96,7 +99,8 @@ const Messages = () => {
         content: newMessage.trim(),
         type: 'text'
       });
-      const newMsg = response.data || {
+      // Backend trả về { success: true, message: {...} }
+      const newMsg = response.message || response.data || {
         _id: Date.now().toString(),
         content: newMessage.trim(),
         sender: { _id: user?._id, username: user?.username, avatar: user?.avatar },

@@ -75,7 +75,11 @@ export const userService = {
   },
 
   getRecommendedUsers: async (refresh = false) => {
-    const response = await api.get(`/users/recommendations?refresh=${refresh}`);
+    // Nếu refresh = true, thêm timestamp để bust cache
+    const url = refresh
+      ? `/users/recommendations?refresh=${Date.now()}`
+      : `/users/recommendations`;
+    const response = await api.get(url);
     return response.data;
   },
 
