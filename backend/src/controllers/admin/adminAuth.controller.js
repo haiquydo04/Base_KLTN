@@ -53,10 +53,11 @@ export const adminLogin = async (req, res, next) => {
       metadata: { ip: req.ip }
     });
 
+    const { _id, username: userUsername, email: userEmail, fullName, role, avatar, status, lastLogin } = user;
     res.json({ 
       success: true, 
       token, 
-      user 
+      user: { _id, username: userUsername, email: userEmail, fullName, role, avatar, status, lastLogin }
     });
   } catch (error) {
     next(error);

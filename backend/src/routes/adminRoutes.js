@@ -13,9 +13,10 @@ router.post('/login', adminLogin);
 // Mục đích: Kiểm tra session và trả về thông tin Admin
 // Yêu cầu: Header Authorization: Bearer <token>
 router.get('/me', authenticate, authorizeAdmin, (req, res) => {
+  const { _id, username, email, fullName, role, avatar, status, lastLogin } = req.user;
   res.json({
     success: true,
-    user: req.user
+    user: { _id, username, email, fullName, role, avatar, status, lastLogin }
   });
 });
 

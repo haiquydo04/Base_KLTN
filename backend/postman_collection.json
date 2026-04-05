@@ -251,10 +251,22 @@
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
-									"pm.test(\"Login successful\", function () {",
+									"pm.test(\"Login successful and fields filtered\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.token).to.be.a('string');",
 									"    pm.environment.set(\"access_token\", jsonData.token);",
+									"    ",
+									"    // Kiểm tra các trường cần thiết",
+									"    var user = jsonData.user;",
+									"    pm.expect(user).to.have.all.keys('_id', 'username', 'email', 'fullName', 'role', 'avatar', 'status', 'lastLogin');",
+									"    ",
+									"    // Kiểm tra các trường KHÔNG được phép có",
+									"    pm.expect(user).to.not.have.property('password');",
+									"    pm.expect(user).to.not.have.property('passwordHash');",
+									"    pm.expect(user).to.not.have.property('interests');",
+									"    pm.expect(user).to.not.have.property('photos');",
+									"    pm.expect(user).to.not.have.property('bio');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -289,6 +301,37 @@
 				},
 				{
 					"name": "Get Admin Info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Admin info fields are correctly filtered\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    ",
+									"    var user = jsonData.user;",
+									"    // Các trường bắt buộc phải có",
+									"    pm.expect(user).to.have.property('_id');",
+									"    pm.expect(user).to.have.property('username');",
+									"    pm.expect(user).to.have.property('email');",
+									"    pm.expect(user).to.have.property('fullName');",
+									"    pm.expect(user).to.have.property('role', 'admin');",
+									"    ",
+									"    // Các trường tuyệt đối KHÔNG được có",
+									"    var forbiddenFields = ['password', 'passwordHash', 'interests', 'photos', 'bio', 'preferences', 'lookingFor', 'age', 'gender'];",
+									"    forbiddenFields.forEach(function(field) {",
+									"        pm.expect(user).to.not.have.property(field);",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [
