@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { userService, matchService } from '../services/api';
 import Navbar from '../components/Navbar';
@@ -41,6 +41,7 @@ const PhotoPlaceholder = ({ initial = '?', gradient = 'linear-gradient(135deg,#f
 ════════════════════════════════════════ */
 const Discover = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
 
   const [profiles, setProfiles] = useState([]);
@@ -53,21 +54,39 @@ const Discover = () => {
   const [likeFlash, setLikeFlash] = useState(false);
   const [passFlash, setPassFlash] = useState(false);
 
-  const fetchProfiles = useCallback(async () => {
+  const fetchProfiles = useCallback(async (forceRefresh = false) => {
+    console.log('[Discover] fetchProfiles called, forceRefresh:', forceRefresh);
     try {
       setLoading(true);
-      const res = await userService.getRecommendedUsers();
-      setProfiles(res.users || []);
+      // Reset state TRƯỚC KHI gọi API
+      setProfiles([]);
       setCurrentIndex(0);
+
+      const res = await userService.getRecommendedUsers(forceRefresh);
+      console.log('[Discover] API response:', res);
+
+      const newProfiles = res.users || [];
+      setProfiles(newProfiles);
+
+      if (newProfiles.length === 0) {
+        console.log('[Discover] No profiles returned - might be filtered out or no more users');
+      }
+
       setError('');
-    } catch {
+    } catch (err) {
+      console.error('[Discover] Error fetching profiles:', err);
       setError('Không thể tải hồ sơ. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
+  // ✅ FIX: Fetch khi mount hoặc khi pathname thay đổi (quay lại trang)
+  useEffect(() => {
+    console.log('[Discover] useEffect triggered, pathname:', location.pathname);
+    fetchProfiles();
+  }, [location.pathname, fetchProfiles]);
+
   useEffect(() => { setSelectedPhoto(0); }, [currentIndex]);
 
   const cp = profiles[currentIndex]; // current profile
@@ -145,7 +164,7 @@ const Discover = () => {
           <h3 style={{ fontSize: 18, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Hết hồ sơ rồi!</h3>
           <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 24 }}>Hãy quay lại sau để khám phá thêm 💕</p>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-            <button onClick={fetchProfiles}
+            <button onClick={() => fetchProfiles(true)}
               style={{ background: 'linear-gradient(135deg,#fb7185,#f43f5e)', color: '#fff', borderRadius: 24, padding: '8px 20px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(244,63,94,0.3)' }}>
               Tải lại
             </button>

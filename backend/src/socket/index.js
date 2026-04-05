@@ -277,7 +277,7 @@ export const initializeSocket = (io) => {
 
     socket.on('next_random', async (data) => {
       try {
-        const { sessionId } = data;
+        const { sessionId, partnerId } = data;
         const currentUserId = socket.user._id.toString();
         
         // End current session
@@ -288,8 +288,14 @@ export const initializeSocket = (io) => {
           });
         }
         
-        // Notify partner that current user left
-        socket.to(`user:${currentUserId}`).emit('partner_left');
+        // ============================================
+        // 🐛 FIX: Notify PARTNER (not self) that current user left
+        // socket.to(`user:${currentUserId}`) → emits to self (wrong!)
+        // Should emit to partnerId
+        // ============================================
+        if (partnerId) {
+          io.to(`user:${partnerId}`).emit('partner_left');
+        }
         
         // Find new partner
         socket.emit('finding_new_partner');

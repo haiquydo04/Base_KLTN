@@ -45,6 +45,16 @@ export const likeUser = async (swiperId, targetUserId) => {
 };
 
 export const passUser = async (swiperId, targetUserId) => {
+  // ============================================
+  // 🛠️ FIX: Thêm validation - kiểm tra user tồn tại
+  // ============================================
+  if (swiperId.toString() === targetUserId.toString()) {
+    return { error: 'You cannot pass yourself', status: 400 };
+  }
+
+  const targetUser = await User.findById(targetUserId);
+  if (!targetUser) return { error: 'User not found', status: 404 };
+
   await Swipe.findOneAndUpdate(
     { swiperId, swipedId: targetUserId },
     { swiperId, swipedId: targetUserId, action: 'pass' },

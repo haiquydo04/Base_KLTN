@@ -15,7 +15,8 @@ const Matches = () => {
     try {
       setLoading(true);
       const response = await userService.getMatches();
-      setMatches(response.data || []);
+      // Backend trả về { success: true, matches: [...] }
+      setMatches(response.matches || response.data?.matches || []);
       setError('');
     } catch (err) {
       console.error('Error fetching matches:', err);
@@ -108,7 +109,8 @@ const Matches = () => {
           ) : (
             <div className="space-y-3">
               {matches.map((match) => {
-                const otherUser = match.users?.find(u => u._id !== user?._id);
+                // Backend trả về userId (đã populated) thay vì users array
+                const otherUser = match.userId || match.users?.find(u => u._id !== user?._id);
                 const lastMessage = match.lastMessage;
                 const hasUnread = match.unreadCount > 0;
 
@@ -130,7 +132,7 @@ const Matches = () => {
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-400 to-purple-500">
                             <span className="text-2xl font-bold text-white">
-                              {otherUser?.username?.charAt(0).toUpperCase()}
+                              {(otherUser?.fullName || otherUser?.username || '?').charAt(0).toUpperCase()}
                             </span>
                           </div>
                         )}
@@ -144,7 +146,7 @@ const Matches = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-white truncate group-hover:text-pink-400 transition-colors">
-                          {otherUser?.fullName || otherUser?.username}
+                          {otherUser?.fullName || otherUser?.username || 'Unknown User'}
                         </h3>
                         {lastMessage && (
                           <span className="text-xs text-gray-500 flex-shrink-0">
@@ -155,11 +157,11 @@ const Matches = () => {
                       <div className="flex items-center gap-2">
                         {lastMessage ? (
                           <p className={`text-sm truncate ${hasUnread ? 'text-white font-medium' : 'text-gray-400'}`}>
-                            {lastMessage.sender?._id === user?._id && 'You: '}
+                            {lastMessage.sender === user?._id || lastMessage.sender?._id === user?._id ? 'You: ' : ''}
                             {lastMessage.content}
                           </p>
                         ) : (
-                          <span className="italic text-gray-500 text-sm">Say hello!</span>
+                          <span className="italic text-gray-500 text-sm">Say hello! 👋</span>
                         )}
                         {hasUnread && (
                           <span className="flex-shrink-0 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center text-xs text-white">
@@ -175,6 +177,13 @@ const Matches = () => {
                           <span>{otherUser.location}</span>
                         </div>
                       )}
+                    </div>
+
+                    {/* Match time badge */}
+                    <div className="flex-shrink-0 text-right">
+                      <span className="text-xs text-gray-500">
+                        {formatTime(match.matchedAt || match.createdAt)}
+                      </span>
                     </div>
 
                     {/* Actions */}
