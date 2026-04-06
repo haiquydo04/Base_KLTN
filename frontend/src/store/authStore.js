@@ -1,9 +1,30 @@
 import { create } from 'zustand';
 import { authService } from '../services/api';
 
+// Safe localStorage parser with error handling
+const getStoredUser = () => {
+  try {
+    const stored = localStorage.getItem('user');
+    if (!stored) return null;
+    return JSON.parse(stored);
+  } catch {
+    // Invalid JSON in localStorage - clear it to prevent crashes
+    localStorage.removeItem('user');
+    return null;
+  }
+};
+
+const getStoredToken = () => {
+  try {
+    return localStorage.getItem('token') || null;
+  } catch {
+    return null;
+  }
+};
+
 export const useAuthStore = create((set, get) => ({
-  user: JSON.parse(localStorage.getItem('user')) || null,
-  token: localStorage.getItem('token') || null,
+  user: getStoredUser(),
+  token: getStoredToken(),
   isLoading: false,
   error: null,
 

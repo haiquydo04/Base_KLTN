@@ -8,7 +8,7 @@ const Chat = () => {
   const { matchId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { socket, connect } = useSocket();
+  const { socket } = useSocket();
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -28,9 +28,9 @@ const Chat = () => {
   const peerConnection = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -53,20 +53,21 @@ const Chat = () => {
 
   useEffect(() => {
     fetchMessages();
-    scrollToBottom();
   }, [fetchMessages]);
 
   useEffect(() => {
-    if (!socket) {
-      connect();
-    }
+    scrollToBottom();
+  }, [scrollToBottom]);
+
+  useEffect(() => {
+    if (!socket) return;
 
     return () => {
       if (socket) {
         socket.emit('leave_room', matchId);
       }
     };
-  }, [socket, connect, matchId]);
+  }, [socket, matchId]);
 
   useEffect(() => {
     if (!socket) return;
