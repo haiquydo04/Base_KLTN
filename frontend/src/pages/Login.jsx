@@ -3,10 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGoogle, faFacebookF } from '@fortawesome/free-brands-svg-icons';
 import { useAuthStore } from '../store/authStore';
+import { useAdminAuthStore } from '../store/adminAuthStore';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login, isLoading, error, clearError } = useAuthStore();
+  const adminStore = useAdminAuthStore();
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -43,8 +46,15 @@ const Login = () => {
       return;
     }
     try {
-      await login(formData);
-      navigate('/discover');
+      const data = await login(formData);
+      
+      if (data?.user?.role === 'admin' || data?.user?.role === 'Admin') {
+        // Log in to admin store to setup admin log & token
+        await adminStore.login(formData);
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/discover');
+      }
     } catch (err) {
       // Error handled by store
     }
@@ -198,10 +208,10 @@ const Login = () => {
 
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || adminStore.isLoading}
                     className="w-full h-11 rounded-full bg-gradient-to-r from-primary-600 to-primary-500 text-white text-base font-bold shadow-md hover:shadow-lg disabled:opacity-60"
                   >
-                    {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                    {(isLoading || adminStore.isLoading) ? 'Đang đăng nhập...' : 'Đăng nhập'}
                   </button>
 
                   <div className="flex justify-end">

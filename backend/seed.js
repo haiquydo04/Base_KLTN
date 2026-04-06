@@ -148,7 +148,7 @@ function generateUsers(count = 50) {
       avatar: avatarUrls[i % avatarUrls.length],
       photos: getRandomItems(photoUrls, randomBetween(2, 5)),
       interests: getRandomItems(interestsList, randomBetween(3, 6)),
-      location: getRandomItem(locations),
+      locationText: getRandomItem(locations),
       occupation: getRandomItem(occupations),
       education: getRandomItem(educations),
       height: gender === 'male' ? randomBetween(165, 185) : randomBetween(150, 170),

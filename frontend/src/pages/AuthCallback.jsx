@@ -33,9 +33,15 @@ const AuthCallback = () => {
       
       if (data?.user) {
         setUser(data.user);
+        
+        // Auto-detect admin
+        if (data.user.role === 'admin' || data.user.role === 'Admin') {
+           navigate('/admin/dashboard');
+           return;
+        }
       }
 
-      // Redirect to discover page
+      // Redirect normal users to discover page
       navigate('/discover');
     } catch (error) {
       console.error('Auth callback error:', error);

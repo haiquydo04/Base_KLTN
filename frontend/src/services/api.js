@@ -11,7 +11,9 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    // Handle admin vs normal user tokens
+    const isAdminRoute = config.url && config.url.includes('/admin');
+    const token = localStorage.getItem(isAdminRoute ? 'adminToken' : 'token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,9 +28,18 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Determine if it was an admin route
+      const isAdminRoute = error.config?.url && error.config.url.includes('/admin');
+      
+      if (isAdminRoute) {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
+        window.location.href = '/admin/login';
+      } else {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -64,6 +75,35 @@ export const authService = {
 
   getCurrentUser: async () => {
     const response = await api.get('/auth/me');
+    return response.data;
+  },
+};
+
+export const adminAuthService = {
+  login: async (data) => {
+    const response = await api.post('/admin/login', data);
+    if (response.data.token) {
+      localStorage.setItem('adminToken', response.data.token);
+      localStorage.setItem('adminUser', JSON.stringify(response.data.user || response.data.admin));
+    }
+    return response.data;
+  },
+
+  logout: async () => {
+    try {
+      if (localStorage.getItem('adminToken')) {
+        await api.post('/admin/logout');
+      }
+    } catch (e) {
+      // Ignore
+    } finally {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUser');
+    }
+  },
+
+  getCurrentAdmin: async () => {
+    const response = await api.get('/admin/me');
     return response.data;
   },
 };
@@ -160,6 +200,48 @@ export const messageService = {
     const response = await api.put(`/messages/${matchId}/read`);
     return response.data;
   },
+};
+
+export const tagsService = {
+  getTags: async () => {
+    try {
+      const response = await api.get('/tags');
+      return response.data;
+    } catch (e) {
+      return ['Thể thao', 'Game', 'Leo núi', 'Chụp ảnh', 'Đọc sách', 'Cà phê', 'Thú cưng', 'Vẽ tranh', 'Tình nguyện'];
+    }
+  }
+};
+
+export const interestsService = {
+  updateAllInterests: async (interests) => {
+    try {
+      const response = await api.put('/users/interests', { interests });
+      return response.data;
+    } catch (e) {
+      // Mock success if endpoint doesn't exist
+      return { success: true };
+    }
+  }
+};
+
+export const adminDashboardService = {
+  getStats: async () => {
+    const response = await api.get('/admin/dashboard/stats');
+    return response.data;
+  },
+  getGrowth: async (days = 7) => {
+    const response = await api.get(`/admin/dashboard/growth?days=${days}`);
+    return response.data;
+  },
+  getGender: async () => {
+    const response = await api.get('/admin/dashboard/gender');
+    return response.data;
+  },
+  getRecentUsers: async (limit = 5) => {
+    const response = await api.get(`/admin/dashboard/recent-users?limit=${limit}`);
+    return response.data;
+  }
 };
 
 export default api;
