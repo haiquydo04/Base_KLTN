@@ -63,3 +63,77 @@ export const adminLogin = async (req, res, next) => {
     next(error);
   }
 };
+
+export const adminLogout = async (req, res, next) => {
+  try {
+    // 1. Ghi log sự kiện đăng xuất
+    await AdminLog.logAction(req.user._id, 'admin_logout_success', {
+      description: 'Đăng xuất khỏi hệ thống quản trị',
+      deviceInfo: req.headers['user-agent'] || 'Unknown Device',
+      metadata: { ip: req.ip }
+    });
+
+    // 2. Gọi service xử lý logic logout (cập nhật isOnline: false)
+    await authService.logoutUser(req.user._id);
+
+    res.json({ success: true, message: 'Đăng xuất thành công' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const adminForgotPassword = async (req, res, next) => {
+  try {
+    const result = await authService.requestPasswordReset(req.body);
+    if (result.error) {
+      return res.status(result.status).json({ success: false, message: result.error });
+    }
+
+    // Ghi log yêu cầu reset mật khẩu
+    const user = await User.findOne({ email: req.body.email.toLowerCase() });
+    if (user) {
+      await AdminLog.logAction(user._id, 'admin_password_reset_request', {
+        description: 'Yêu cầu mã OTP khôi phục mật khẩu Admin',
+        metadata: { ip: req.ip, email: req.body.email }
+      });
+    }
+
+    res.json({ success: true, message: result.message });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const adminVerifyOTP = async (req, res, next) => {
+  try {
+    const result = await authService.verifyPasswordResetOTP(req.body);
+    if (result.error) {
+      return res.status(result.status).json({ success: false, message: result.error });
+    }
+    res.json({ success: true, message: result.message });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const adminResetPassword = async (req, res, next) => {
+  try {
+    const result = await authService.resetUserPassword(req.body);
+    if (result.error) {
+      return res.status(result.status).json({ success: false, message: result.error });
+    }
+
+    // Ghi log đổi mật khẩu thành công
+    const user = await User.findOne({ email: req.body.email.toLowerCase() });
+    if (user) {
+      await AdminLog.logAction(user._id, 'admin_password_reset_success', {
+        description: 'Đặt lại mật khẩu Admin thành công qua OTP',
+        metadata: { ip: req.ip }
+      });
+    }
+
+    res.json({ success: true, message: result.message });
+  } catch (error) {
+    next(error);
+  }
+};
