@@ -162,4 +162,26 @@ export const messageService = {
   },
 };
 
+export const tagsService = {
+  getTags: async () => {
+    try {
+      const response = await api.get('/tags');
+      return response.data;
+    } catch {
+      return [];
+    }
+  },
+};
+
+export const interestsService = {
+  updateAllInterests: async (interests) => {
+    try {
+      const response = await api.post('/interests', { interests });
+      return response.data;
+    } catch {
+      return {};
+    }
+  },
+};
+
 export default api;
