@@ -12,7 +12,6 @@ import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
-import Matches from './pages/Matches';
 import Messages from './pages/Messages';
 import Chat from './pages/Chat';
 import Discover from './pages/Discover';
@@ -91,14 +90,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <Discover />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/matches" 
-            element={
-              <ProtectedRoute>
-                <Matches />
               </ProtectedRoute>
             } 
           />
