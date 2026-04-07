@@ -68,7 +68,6 @@ const Discover = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
-  const [matchNotification, setMatchNotification] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [likeFlash, setLikeFlash] = useState(false);
   const [passFlash, setPassFlash] = useState(false);
@@ -131,15 +130,23 @@ const Discover = () => {
     try {
       const res = await matchService.likeUser(cp._id);
       console.log('[Discover] Like response:', res);
-      // FIX: Backend returns { matched: true/false } - check both for compatibility
+      
+      // FIX: Navigate directly to chat when match
       const isMatch = res?.matched || res?.isMatch;
-      if (isMatch) {
-        console.log('[Discover] Match detected! Showing notification');
-        setMatchNotification({ matchedUser: cp });
+      const conversationId = res?.conversationId || res?.matchId;
+      
+      if (isMatch && conversationId) {
+        console.log('[Discover] Match! Navigating to /messages/:conversationId');
+        // Navigate directly to chat
+        navigate(`/chat/${conversationId}`);
+        return; // Don't move to next profile
       }
+      
+      // Not a match, just like normally
       setCurrentIndex(i => i + 1);
     } catch (err) {
       console.error('[Discover] Like error:', err);
+      setCurrentIndex(i => i + 1); // Still move to next on error
     }
     finally { setActionLoading(false); }
   };
@@ -209,9 +216,9 @@ const Discover = () => {
               style={{ background: 'linear-gradient(135deg,#fb7185,#f43f5e)', color: '#fff', borderRadius: 24, padding: '8px 20px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(244,63,94,0.3)' }}>
               Tải lại
             </button>
-            <Link to="/matches"
+            <Link to="/messages"
               style={{ background: '#fff0f6', color: '#f43f5e', borderRadius: 24, padding: '8px 20px', fontSize: 12, fontWeight: 600, border: '1px solid #fce7f3', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
-              Xem kết nối
+              Tin nhắn
             </Link>
           </div>
         </div>
@@ -555,57 +562,6 @@ const Discover = () => {
           </div>{/* end 3-col grid */}
         </div>{/* end max-w container */}
       </div>{/* end scroll area */}
-
-      {/* ══ MATCH MODAL ══ */}
-      {matchNotification && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
-          <div style={{
-            background: '#fff', borderRadius: 28, padding: '32px 28px', maxWidth: 320, width: '100%', textAlign: 'center',
-            boxShadow: '0 20px 60px rgba(244,63,94,0.2)', position: 'relative', overflow: 'hidden',
-            animation: 'popIn .38s cubic-bezier(.34,1.56,.64,1) both'
-          }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,rgba(251,113,133,0.06),rgba(216,180,254,0.08))', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative' }}>
-              <div style={{ fontSize: 48, marginBottom: 8 }}>💕</div>
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: '0 0 6px' }}>Kết đôi!</h2>
-              <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 20 }}>
-                Bạn và <strong style={{ color: '#374151' }}>{matchNotification.matchedUser?.fullName || matchNotification.matchedUser?.username}</strong> đã thích nhau!
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
-                {[user, matchNotification.matchedUser].map((u, i) => (
-                  <div key={i} style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', boxShadow: `0 0 0 3px ${i === 0 ? '#fb7185' : '#c4b5fd'}, 0 0 0 5px #fff` }}>
-                    {u?.avatar
-                      ? <img src={u.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 20, background: i === 0 ? 'linear-gradient(135deg,#fb7185,#f43f5e)' : 'linear-gradient(135deg,#c4b5fd,#8b5cf6)' }}>
-                        {(u?.fullName || u?.username)?.charAt(0).toUpperCase()}
-                      </div>
-                    }
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button
-                  onClick={() => { setMatchNotification(null); navigate('/matches'); }}
-                  style={{ width: '100%', padding: '12px 0', background: 'linear-gradient(135deg,#fb7185,#f43f5e)', color: '#fff', borderRadius: 28, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', boxShadow: '0 6px 18px rgba(244,63,94,0.35)' }}>
-                  ❤️ Nhắn tin ngay
-                </button>
-                <button
-                  onClick={() => setMatchNotification(null)}
-                  style={{ background: 'none', border: 'none', color: '#d1d5db', fontSize: 12, cursor: 'pointer', padding: '6px 0' }}>
-                  Tiếp tục khám phá
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        @keyframes popIn {
-          from { opacity:0; transform:scale(0.72); }
-          to   { opacity:1; transform:scale(1); }
-        }
-      `}</style>
     </div>
   );
 };

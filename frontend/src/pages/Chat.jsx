@@ -333,7 +333,7 @@ const Chat = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/matches')}
+              onClick={() => navigate('/messages')}
               className="p-2 hover:bg-gray-700 rounded-xl transition-colors"
             >
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -455,7 +455,14 @@ const Chat = () => {
             </div>
           ) : messages.length === 0 ? null : (
             messages.map((message, index) => {
-              const isOwnMessage = message.sender?._id === user?._id || message.sender === user?._id;
+              // FIX: Get sender info from populated sender/senderId fields
+              const senderData = message.sender?._id ? message.sender : 
+                                (message.senderId?._id ? message.senderId : null);
+              const isOwnMessage = senderData?._id === user?._id || message.sender === user?._id;
+              
+              // Get sender name and avatar with fallback
+              const senderName = senderData?.username || senderData?.fullName || 'Unknown';
+              const senderAvatar = senderData?.avatar;
 
               return (
                 <div
@@ -463,6 +470,25 @@ const Chat = () => {
                   className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
                 >
                   <div className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-end gap-2 max-w-[75%]`}>
+                    {/* FIX: Show avatar for other user's messages */}
+                    {!isOwnMessage && (
+                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-700">
+                        {senderAvatar ? (
+                          <img 
+                            src={senderAvatar} 
+                            alt={senderName}
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">
+                              {senderName.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     <div
                       className={`px-4 py-3 rounded-2xl ${
                         isOwnMessage
@@ -470,6 +496,12 @@ const Chat = () => {
                           : 'bg-gray-800 text-white rounded-bl-sm'
                       }`}
                     >
+                      {/* FIX: Show sender name for other user's messages */}
+                      {!isOwnMessage && (
+                        <p className="text-xs font-semibold text-pink-400 mb-1">
+                          {senderName}
+                        </p>
+                      )}
                       <p className="text-sm">{message.content}</p>
                       <p className={`text-xs mt-1 ${isOwnMessage ? 'text-white/70' : 'text-gray-500'}`}>
                         {formatTime(message.createdAt)}

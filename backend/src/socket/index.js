@@ -86,15 +86,16 @@ export const initializeSocket = (io) => {
         const message = await Message.create({
           matchId,
           senderId: socket.user._id,
-          sender: socket.user._id, // backward compatible
+          sender: socket.user._id,
           content,
           messageType: type || 'text',
           isRead: false,
           status: 'sent'
         });
 
+        // FIX: Populate sender with full user info (name, avatar)
         const populatedMessage = await Message.findById(message._id)
-          .populate('sender senderId', 'username avatar');
+          .populate('sender', 'username fullName avatar');
 
         match.lastActivity = new Date();
         await match.save();

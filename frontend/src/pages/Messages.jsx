@@ -365,10 +365,40 @@ const Messages = () => {
                 ) : (
                   <div className="space-y-4">
                     {messages.map((msg) => {
-                      const isOwn = msg.sender === user?._id || msg.sender?._id === user?._id;
+                      // FIX: Get sender info from populated sender/senderId
+                      const senderData = msg.sender?._id ? msg.sender : 
+                                        (msg.senderId?._id ? msg.senderId : null);
+                      const isOwn = senderData?._id === user?._id || msg.sender === user?._id;
+                      const senderName = senderData?.username || senderData?.fullName || 'Unknown';
+                      const senderAvatar = senderData?.avatar;
+
                       return (
                         <div key={msg._id || msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          {/* FIX: Show avatar for other user's messages */}
+                          {!isOwn && (
+                            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2">
+                              {senderAvatar ? (
+                                <img 
+                                  src={senderAvatar} 
+                                  alt={senderName}
+                                  className="w-full h-full object-cover" 
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
+                                  <span className="text-white text-xs font-bold">
+                                    {senderName.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                           <div className={`max-w-[78%] ${isOwn ? 'text-right' : 'text-left'}`}>
+                            {/* FIX: Show sender name for other user's messages */}
+                            {!isOwn && (
+                              <p className="text-xs font-semibold text-rose-500 mb-1">
+                                {senderName}
+                              </p>
+                            )}
                             <div className={`rounded-2xl px-4 py-2.5 text-sm ${
                               isOwn
                                 ? 'bg-rose-600 text-white rounded-br-sm'

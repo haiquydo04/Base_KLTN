@@ -24,10 +24,10 @@ const Home = () => {
               Start Discovering
             </Link>
             <Link
-              to="/matches"
+              to="/messages"
               className="btn-secondary px-8 py-3 text-lg"
             >
-              View Matches
+              Tin nhắn
             </Link>
           </div>
         </div>
