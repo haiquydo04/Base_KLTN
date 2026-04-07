@@ -79,22 +79,24 @@ export const toggleUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const adminId = req.user._id;
+    console.log(`[toggleUserStatus] Request: adminId=${adminId}, targetId=${id}`);
 
     // Tìm user theo ID
     const user = await User.findById(id);
 
-    // Kiểm tra PB19: "Nếu tài khoản không tồn tại hoặc lỗi hệ thống, báo: Không thể thực hiện thao tác, vui lòng thử lại sau."
     if (!user) {
+      console.log(`[toggleUserStatus] User not found: ${id}`);
       return res.status(404).json({
         success: false,
         message: 'Không thể thực hiện thao tác, vui lòng thử lại sau.'
       });
     }
 
-    if (user.role === 'admin') {
+    if (user.role === 'admin' && user._id.toString() === adminId.toString()) {
+      console.log(`[toggleUserStatus] Cannot lock self admin`);
       return res.status(403).json({
         success: false,
-        message: 'Không thể thao tác trên tài khoản Quản trị viên khác.'
+        message: 'Bạn không thể tự khóa tài khoản của chính mình.'
       });
     }
 
@@ -104,8 +106,10 @@ export const toggleUserStatus = async (req, res) => {
     // Đồng bộ với trường status cho nhất quán
     user.status = user.isLocked ? 'banned' : 'active';
 
-    // Lưu lại User
-    await user.save();
+    console.log(`[toggleUserStatus] Saving user with isLocked=${user.isLocked}, status=${user.status}`);
+    // Lưu lại User using updateOne to bypass schema validations on other fields
+    await User.updateOne({ _id: id }, { $set: { isLocked: user.isLocked, status: user.status } });
+    console.log(`[toggleUserStatus] User saved successfully`);
 
     // PB19 Điều kiện ràng buộc: Ghi nhật ký hệ thống (Logging)
     const actionStr = user.isLocked ? 'LOCK_ACCOUNT' : 'UNLOCK_ACCOUNT';
@@ -116,8 +120,8 @@ export const toggleUserStatus = async (req, res) => {
       description: descriptionStr,
       deviceInfo: req.headers['user-agent'] || 'Unknown Device'
     });
+    console.log(`[toggleUserStatus] AdminLog saved`);
 
-    // PB19: "Nếu cập nhật thành công, hệ thống lưu vào CSDL và thông báo: Cập nhật trạng thái tài khoản thành công."
     res.json({
       success: true,
       message: 'Cập nhật trạng thái tài khoản thành công.',
@@ -131,7 +135,6 @@ export const toggleUserStatus = async (req, res) => {
 
   } catch (error) {
     console.error('Lỗi khi thay đổi trạng thái User (Admin):', error);
-    // PB19: "Nếu tài khoản không tồn tại hoặc lỗi hệ thống, báo: Không thể thực hiện thao tác, vui lòng thử lại sau."
     res.status(500).json({
       success: false,
       message: 'Không thể thực hiện thao tác, vui lòng thử lại sau.'
@@ -160,13 +163,13 @@ export const updateUserRole = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng.' });
     }
 
-    if (user.role === 'admin') {
-      return res.status(403).json({ success: false, message: 'Không thể thay đổi quyền của Quản trị viên khác.' });
+    if (user.role === 'admin' && user._id.toString() === adminId.toString()) {
+      return res.status(403).json({ success: false, message: 'Bạn không thể tự hạ quyền của chính mình.' });
     }
 
     const oldRole = user.role;
     user.role = role;
-    await user.save();
+    await User.updateOne({ _id: id }, { $set: { role: role } });
 
     const descriptionStr = `Admin (ID: ${adminId}) đã đổi quyền User (ID: ${user._id}, Username: ${user.username}) từ ${oldRole} sang ${role}.`;
 

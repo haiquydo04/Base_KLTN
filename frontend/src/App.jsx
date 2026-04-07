@@ -21,6 +21,7 @@ import RandomVideoChat from './pages/RandomVideoChat';
 import Safety from './pages/Safety';
 import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
+import UserManagement from './pages/UserManagement';
 
 const ProtectedRoute = ({ children }) => {
   const { token, isLoading, user } = useAuthStore();
@@ -94,6 +95,14 @@ function App() {
               element={
                 <AdminProtectedRoute>
                   <Dashboard />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <AdminProtectedRoute>
+                  <UserManagement />
                 </AdminProtectedRoute>
               } 
             />

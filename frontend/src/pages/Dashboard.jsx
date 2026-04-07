@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { adminDashboardService, adminAuthService } from '../services/api';
 import { LineChart, Line, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Link } from 'react-router-dom';
+import AdminLayout from '../components/AdminLayout';
 
 // Custom Icons to match the design precisely
 const Icons = {
@@ -151,100 +153,28 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
+
+    // Thiết lập Polling (Gửi yêu cầu liên tục) mỗi 5 giây để lấy dữ liệu stats mới nhất (giúp số liệu Trực Tuyến nhảy real-time mà k cần reload)
+    const statsInterval = setInterval(async () => {
+      try {
+        const statsData = await adminDashboardService.getStats();
+        if (statsData) {
+          setStats(prevStats => ({
+            ...prevStats,
+            ...(statsData.data || statsData)
+          }));
+        }
+      } catch (e) {}
+    }, 5000);
+
+    return () => clearInterval(statsInterval);
   }, [daysRange, userLimit]);
 
   const COLORS = ['#E53258', '#475569', '#F1F5F9'];
 
   return (
-    <div className="flex h-screen bg-[#FDFBFB] font-sans text-[#334155]">
-      {/* Sidebar */}
-      <aside className="w-[260px] bg-white border-r border-[#F0EBEF] flex flex-col justify-between py-6 shrink-0 relative">
-        <div>
-          <div className="px-6 mb-10">
-            <h1 className="text-[#E53258] font-bold text-2xl tracking-tight leading-none">LoveAI</h1>
-            <p className="text-gray-500 text-xs mt-1">Bộ Quản lý</p>
-          </div>
-
-          <nav className="flex flex-col gap-2">
-            <a href="#" className="flex items-center gap-3 px-6 py-3 bg-[#FFF0F3] border-l-4 border-[#E53258] text-[#E53258] font-medium transition-colors">
-              <Icons.Dashboard className="w-5 h-5" />
-              Bảng điều khiển
-            </a>
-            <a href="#" className="flex items-center gap-3 px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium transition-colors border-l-4 border-transparent">
-              <Icons.Users className="w-5 h-5 text-gray-400" />
-              Quản lý người dùng
-            </a>
-            <a href="#" className="flex items-center gap-3 px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium transition-colors border-l-4 border-transparent">
-              <Icons.ShieldCheck className="w-5 h-5 text-gray-400" />
-              Kiểm duyệt AI
-            </a>
-            <a href="#" className="flex items-center gap-3 px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium transition-colors border-l-4 border-transparent">
-              <Icons.FileText className="w-5 h-5 text-gray-400" />
-              Danh mục nội dung
-            </a>
-            <a href="#" className="flex items-center gap-3 px-6 py-3 text-gray-600 hover:bg-gray-50 font-medium transition-colors border-l-4 border-transparent">
-              <Icons.Settings className="w-5 h-5 text-gray-400" />
-              Cài đặt hệ thống
-            </a>
-          </nav>
-        </div>
-
-        <div className="px-6 mt-8">
-          <button className="flex items-center justify-center gap-2 w-full py-3 bg-[#475569] hover:bg-[#334155] text-white rounded-full font-medium transition-colors shadow-sm">
-            <Icons.Shield className="w-4 h-4" />
-            Chế độ An toàn
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header */}
-        <header className="h-[76px] px-8 flex items-center justify-between border-b border-[#F0EBEF] bg-white/70 backdrop-blur-md shrink-0">
-          <h2 className="text-xl font-bold">Bảng điều khiển</h2>
-          
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              <Icons.Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input 
-                type="text" 
-                placeholder="Tìm kiếm hệ thống..." 
-                className="w-64 pl-10 pr-4 py-2 bg-gray-100/80 border-none rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#E53258]/20 transition-shadow"
-              />
-            </div>
-            
-            <div className="flex items-center gap-4 border-l border-gray-200 pl-6 cursor-pointer">
-              <div className="relative text-gray-600 hover:text-gray-900 transition-colors">
-                <Icons.Bell className="w-5 h-5" />
-                <span className="absolute 1 top-0 right-0 w-2 h-2 bg-red-500 border border-white rounded-full"></span>
-              </div>
-              <div className="text-gray-600 hover:text-gray-900 transition-colors">
-                <Icons.Message className="w-5 h-5" />
-              </div>
-              <div className="flex items-center gap-3 ml-2 border-l border-gray-200 pl-4">
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
-                  {admin.avatar ? <img src={admin.avatar} alt="avatar" className="w-full h-full object-cover" /> : <Icons.UserFace1 />}
-                </div>
-                <button 
-                  onClick={() => {
-                    localStorage.removeItem('adminToken');
-                    localStorage.removeItem('adminUser');
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    window.location.href = '/login';
-                  }}
-                  className="text-xs font-bold text-gray-500 hover:text-[#E53258] transition-colors uppercase tracking-widest bg-gray-50 hover:bg-rose-50 px-3 py-1.5 rounded-full"
-                >
-                  Đăng xuất
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-8">
-          {/* Welcome Text */}
+    <AdminLayout title="Bảng điều khiển">
+      {/* Welcome Text */}
           <div>
             <h2 className="text-[28px] font-bold text-gray-900">Chào mừng trở lại, {admin.name || 'Quản trị viên'}</h2>
             <p className="text-gray-500 italic mt-1">"Kết nối trái tim bằng trí tuệ nhân tạo"</p>
@@ -273,7 +203,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">Đang trực tuyến</p>
-              <h3 className="text-[32px] font-bold mt-1 text-gray-800">{loading ? '...' : (stats.usersOnline?.toLocaleString() || '0')}</h3>
+              <h3 className="text-[32px] font-bold mt-1 text-gray-800">{loading ? '...' : (stats.onlineUsers?.toLocaleString() || '0')}</h3>
             </div>
 
             <div className="bg-white p-6 rounded-[24px] shadow-sm flex flex-col border border-gray-50">
@@ -518,9 +448,7 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </main>
-    </div>
+            </div>
+    </AdminLayout>
   );
 }

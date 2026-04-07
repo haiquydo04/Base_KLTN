@@ -244,4 +244,19 @@ export const adminDashboardService = {
   }
 };
 
+export const adminUserService = {
+  getUsers: async (params) => {
+    const response = await api.get('/admin/users', { params });
+    return response.data;
+  },
+  toggleStatus: async (id) => {
+    const response = await api.put(`/admin/users/${id}/status`);
+    return response.data;
+  },
+  updateRole: async (id, role) => {
+    const response = await api.put(`/admin/users/${id}/role`, { role });
+    return response.data;
+  }
+};
+
 export default api;
