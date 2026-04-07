@@ -35,16 +35,25 @@ const Messages = () => {
     try {
       setLoadingConversations(true);
       const response = await messageService.getConversations();
-      const list = response.conversations || response.data || [];
-      setConversations(Array.isArray(list) ? list : []);
+      console.log('[Messages] Conversations response:', response);
+
+      // FIX: Handle multiple response formats from backend
+      // Backend may return: { success, data: { conversations: [] } } or { conversations: [] } or { data: [] }
+      const rawData = response?.conversations || response?.data?.conversations || response?.data || [];
+      const list = Array.isArray(rawData) ? rawData : [];
+      console.log('[Messages] Extracted conversations:', list.length);
+      setConversations(list);
 
       // Auto select first conversation
       if (list.length > 0) {
-        setSelectedConversationId(list[0].matchId);
+        const firstConv = list[0];
+        const convMatchId = firstConv.matchId || firstConv._id;
+        console.log('[Messages] Auto-selecting conversation:', convMatchId);
+        setSelectedConversationId(convMatchId);
       }
       setError('');
     } catch (err) {
-      console.error('Error fetching conversations:', err);
+      console.error('[Messages] Error fetching conversations:', err);
       setError('Không thể tải danh sách cuộc trò chuyện');
     } finally {
       setLoadingConversations(false);
@@ -57,11 +66,17 @@ const Messages = () => {
     try {
       setLoadingMessages(true);
       const response = await messageService.getMessages(matchId);
-      const msgs = response.messages || response.data || [];
+      console.log('[Messages] Messages response:', response);
+
+      // FIX: Handle multiple response formats from backend
+      // Backend may return: { success, messages: [] } or { messages: [] } or { data: [] }
+      const msgs = response?.messages || response?.data?.messages || response?.data || [];
+      console.log('[Messages] Extracted messages:', msgs.length);
       setMessages(Array.isArray(msgs) ? msgs : []);
+
       await messageService.markAsRead(matchId).catch(() => {});
     } catch (err) {
-      console.error('Error fetching messages:', err);
+      console.error('[Messages] Error fetching messages:', err);
       setError('Không thể tải tin nhắn');
     } finally {
       setLoadingMessages(false);

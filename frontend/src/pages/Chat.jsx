@@ -36,16 +36,27 @@ const Chat = () => {
     try {
       setLoading(true);
       const response = await messageService.getMessages(matchId);
-      setMessages(response.data || []);
+      console.log('[Chat] Messages response:', response);
 
-      const matches = await userService.getMatches();
-      const match = matches.matches?.find(m => m._id === matchId);
+      // FIX: Backend returns { success, messages[] } - handle multiple formats
+      const msgs = response?.messages || response?.data?.messages || response?.data || [];
+      console.log('[Chat] Extracted messages:', msgs.length);
+      setMessages(Array.isArray(msgs) ? msgs : []);
+
+      // FIX: Backend returns { success, matches[] } - extract matches array
+      const matchesResponse = await userService.getMatches();
+      console.log('[Chat] Matches response:', matchesResponse);
+      const matchList = matchesResponse?.matches || matchesResponse?.data || [];
+      const match = Array.isArray(matchList) ? matchList.find(m => m._id === matchId) : null;
+
       if (match) {
-        const other = match.users?.find(u => u._id !== user?._id);
+        // FIX: Match structure may have users array or user1Id/user2Id
+        const other = match.users?.find(u => u._id !== user?._id) ||
+                      (match.user1Id?.toString() === user?._id?.toString() ? match.user2Id : match.user1Id);
         setOtherUser(other);
       }
     } catch (err) {
-      console.error('Error fetching messages:', err);
+      console.error('[Chat] Error fetching messages:', err);
     } finally {
       setLoading(false);
     }

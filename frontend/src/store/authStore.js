@@ -28,7 +28,14 @@ export const useAuthStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+    set({ user });
+  },
   
   setToken: (token) => {
     if (token) {
@@ -43,9 +50,20 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await authService.login(credentials);
+      console.log('[AuthStore] Login response:', data);
+      
+      // Ensure user and token are set
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      
       set({ user: data.user, token: data.token, isLoading: false });
       return data;
     } catch (error) {
+      console.error('[AuthStore] Login error:', error);
       set({ 
         error: error.response?.data?.message || 'Login failed', 
         isLoading: false 
@@ -58,6 +76,15 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await authService.register(userData);
+      
+      // Ensure user and token are set
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      
       set({ user: data.user, token: data.token, isLoading: false });
       return data;
     } catch (error) {
@@ -86,10 +113,13 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const data = await authService.getCurrentUser();
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
       set({ user: data.user, isLoading: false });
-      localStorage.setItem('user', JSON.stringify(data.user));
       return data;
     } catch (error) {
+      console.error('[AuthStore] fetchCurrentUser error:', error);
       set({ isLoading: false });
       throw error;
     }
