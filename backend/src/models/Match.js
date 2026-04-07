@@ -89,7 +89,7 @@ matchSchema.statics.findMatch = function(userId1, userId2) {
   });
 };
 
-// Static method: tìm tất cả match của một user
+// Static method: tìm tất cả match của một user (populated - for API responses)
 matchSchema.statics.findUserMatches = function(userId) {
   return this.find({
     $or: [
@@ -98,6 +98,17 @@ matchSchema.statics.findUserMatches = function(userId) {
     ],
     isActive: true
   }).populate('user1Id user2Id', '-password -passwordHash');
+};
+
+// Static method: tìm tất cả match của một user (NON-populated - for internal use)
+matchSchema.statics.findUserMatchesRaw = function(userId) {
+  return this.find({
+    $or: [
+      { user1Id: userId },
+      { user2Id: userId }
+    ],
+    isActive: true
+  });
 };
 
 // Kiểm tra user có trong match không

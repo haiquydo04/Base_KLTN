@@ -4,6 +4,25 @@ import { useAuthStore } from '../store/authStore';
 import { userService, matchService } from '../services/api';
 import Navbar from '../components/Navbar';
 
+/* ─── Helper: Format location for display ─── */
+const formatLocation = (location) => {
+  if (!location) return null;
+  
+  // If it's a string, return as-is
+  if (typeof location === 'string') {
+    return location.trim() || null;
+  }
+  
+  // If it's an object (GeoJSON format)
+  if (typeof location === 'object') {
+    // Handle locationText if available
+    if (location.locationText) return location.locationText;
+    // Don't expose raw coordinates to users
+  }
+  
+  return null;
+};
+
 /* ─── AI Score Ring ─── */
 const AIScoreRing = ({ score = 85 }) => {
   const r = 20, circ = 2 * Math.PI * r;
@@ -63,10 +82,24 @@ const Discover = () => {
       setCurrentIndex(0);
 
       const res = await userService.getRecommendedUsers(forceRefresh);
-      console.log('[Discover] API response:', res);
+      console.log('[Discover] Raw API response:', res);
+      console.log('[Discover] Response structure:', {
+        hasUsers: Array.isArray(res?.users),
+        hasData: !!res?.data,
+        hasSuccess: 'success' in res,
+        keys: Object.keys(res || {})
+      });
 
-      const newProfiles = res.users || [];
-      setProfiles(newProfiles);
+      // FIX: Handle multiple response formats from backend
+      const newProfiles = res?.users || res?.data?.users || res?.data || [];
+      console.log('[Discover] Extracted profiles count:', newProfiles.length);
+
+      if (!Array.isArray(newProfiles)) {
+        console.error('[Discover] Profiles is not an array:', typeof newProfiles);
+        setProfiles([]);
+      } else {
+        setProfiles(newProfiles);
+      }
 
       if (newProfiles.length === 0) {
         console.log('[Discover] No profiles returned - might be filtered out or no more users');
@@ -97,9 +130,17 @@ const Discover = () => {
     setActionLoading(true);
     try {
       const res = await matchService.likeUser(cp._id);
-      if (res.isMatch || res.matched) setMatchNotification({ matchedUser: cp });
+      console.log('[Discover] Like response:', res);
+      // FIX: Backend returns { matched: true/false } - check both for compatibility
+      const isMatch = res?.matched || res?.isMatch;
+      if (isMatch) {
+        console.log('[Discover] Match detected! Showing notification');
+        setMatchNotification({ matchedUser: cp });
+      }
       setCurrentIndex(i => i + 1);
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error('[Discover] Like error:', err);
+    }
     finally { setActionLoading(false); }
   };
 
@@ -261,7 +302,7 @@ const Discover = () => {
                         <svg width="11" height="11" fill="#fb7185" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                         </svg>
-                        {cp.location ? `Cách bạn 2km` : 'Cách bạn 2km'}
+                        Cách bạn 2km
                       </span>
                     </div>
                   </div>
@@ -471,7 +512,7 @@ const Discover = () => {
                       <svg width="10" height="10" fill="#f43f5e" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                       </svg>
-                      {cp.location ? `Cách bạn 2km (${cp.location})` : 'Cách bạn 2km (Quận 1)'}
+                      Cách bạn 2km (Quận 1)
                     </span>
                   </div>
                 </div>

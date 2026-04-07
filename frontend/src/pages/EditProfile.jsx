@@ -102,25 +102,42 @@ const EditProfile = () => {
   const handleSubmit = async () => {
     setLoading(true); setError(''); setSuccess('');
     try {
-      const data = await userService.updateProfile({
+      // Update profile
+      const profileData = await userService.updateProfile({
         fullName: form.fullName,
         gender: form.gender,
         dateOfBirth: form.dateOfBirth,
         bio: form.bio,
         location: form.location,
-        interests: selectedInterests,
         avatar: form.avatar,
         preferences: form.preferences,
       });
+      console.log('[EditProfile] Profile update response:', profileData);
 
+      // Update interests separately (backend may handle this differently)
       try {
         await interestsService.updateAllInterests(selectedInterests);
-      } catch (e) {}
+        console.log('[EditProfile] Interests updated');
+      } catch (e) {
+        console.warn('[EditProfile] Interest update failed:', e);
+      }
 
-      setUser({ ...data.user, interests: selectedInterests });
+      // Extract user from response - handle multiple formats
+      const updatedUser = profileData?.user || profileData?.data?.user || profileData;
+      console.log('[EditProfile] Updated user:', updatedUser);
+
+      // Update auth store with merged data
+      const mergedUser = {
+        ...currentUser,
+        ...updatedUser,
+        interests: selectedInterests, // Ensure interests are synced
+      };
+      setUser(mergedUser);
+      
       setSuccess('Lưu thành công!');
       setTimeout(() => navigate('/profile'), 1200);
     } catch (err) {
+      console.error('[EditProfile] Submit error:', err);
       setError(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
     } finally {
       setLoading(false);
