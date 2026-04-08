@@ -1,11 +1,20 @@
 /**
- * API Service - Fixed version
- * Backend API integration with correct endpoints and response handling
+ * API Service - Vercel Production Ready
+ * Backend API integration with environment variable support
  */
 
 import axios from 'axios';
 
-const API_URL = '/api';
+const getApiUrl = () => {
+  // Production: use external backend URL from env
+  if (import.meta.env.PROD) {
+    return import.meta.env.VITE_API_URL || '/api';
+  }
+  // Development: use relative path (Vite proxy)
+  return import.meta.env.VITE_API_URL || '/api';
+};
+
+const API_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: API_URL,
@@ -271,9 +280,9 @@ export const messageService = {
   },
 
   /**
-   * Get messages for a conversation
+   * Get messages for a conversation (with pagination)
    * Backend: GET /api/messages/:matchId?page=1&limit=50
-   * Returns: { success, messages[] }
+   * Returns: { success, messages[], pagination }
    */
   getMessages: async (matchId, page = 1, limit = 50) => {
     const response = await api.get(`/messages/${matchId}?page=${page}&limit=${limit}`);
@@ -288,6 +297,23 @@ export const messageService = {
    */
   sendMessage: async (matchId, data) => {
     const response = await api.post(`/messages/${matchId}`, data);
+    return response.data;
+  },
+
+  /**
+   * Upload media (image) for message
+   * Backend: POST /api/messages/:matchId/media (multipart/form-data)
+   * Returns: { success, mediaUrl }
+   */
+  uploadMedia: async (matchId, file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await api.post(`/messages/${matchId}/media`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 

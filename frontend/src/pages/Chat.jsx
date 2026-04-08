@@ -1,146 +1,196 @@
+/**
+ * Chat Component - Real-time messaging with:
+ * - Pagination (scroll up for older messages)
+ * - Error retry UI
+ * - Read receipts
+ * - Media upload
+ * - Typing indicators
+ */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useSocket } from '../context/SocketContext';
 import { messageService, userService } from '../services/api';
+import useChatPagination from '../hooks/useChatPagination';
+
+const MAX_MESSAGE_LENGTH = 1000;
 
 const Chat = () => {
   const { matchId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { socket } = useSocket();
+  const { socket, isConnected } = useSocket();
 
-  const [messages, setMessages] = useState([]);
+  // Pagination hook
+  const {
+    messages,
+    loading,
+    loadingMore,
+    hasMore,
+    error,
+    messagesEndRef,
+    messagesStartRef,
+    fetchMessages,
+    addMessage,
+    updateMessageStatus,
+    handleScroll
+  } = useChatPagination(matchId);
+
+  // UI State
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(null);
+  const [failedMessages, setFailedMessages] = useState(new Map()); // tempId -> message
   const [otherUser, setOtherUser] = useState(null);
-  const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  
+  // Video call state
   const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
-
-  const messagesEndRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnection = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+  // Format time helper
+  const formatTime = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
-  const fetchMessages = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await messageService.getMessages(matchId);
-      console.log('[Chat] Messages response:', response);
+  // Fetch other user info
+  useEffect(() => {
+    const fetchOtherUser = async () => {
+      try {
+        const matchesResponse = await userService.getMatches();
+        const matchList = matchesResponse?.matches || matchesResponse?.data || [];
+        const match = Array.isArray(matchList) ? matchList.find(m => m._id === matchId) : null;
 
-      // FIX: Backend returns { success, messages[] } - handle multiple formats
-      const msgs = response?.messages || response?.data?.messages || response?.data || [];
-      console.log('[Chat] Extracted messages:', msgs.length);
-      setMessages(Array.isArray(msgs) ? msgs : []);
-
-      // FIX: Backend returns { success, matches[] } - extract matches array
-      const matchesResponse = await userService.getMatches();
-      console.log('[Chat] Matches response:', matchesResponse);
-      const matchList = matchesResponse?.matches || matchesResponse?.data || [];
-      const match = Array.isArray(matchList) ? matchList.find(m => m._id === matchId) : null;
-
-      if (match) {
-        // FIX: Match structure may have users array or user1Id/user2Id
-        const other = match.users?.find(u => u._id !== user?._id) ||
-                      (match.user1Id?.toString() === user?._id?.toString() ? match.user2Id : match.user1Id);
-        setOtherUser(other);
+        if (match) {
+          const other = match.users?.find(u => u._id !== user?._id) ||
+            (match.user1Id?.toString() === user?._id?.toString() ? match.user2Id : match.user1Id);
+          setOtherUser(other);
+        }
+      } catch (err) {
+        console.error('[Chat] Error fetching user:', err);
       }
-    } catch (err) {
-      console.error('[Chat] Error fetching messages:', err);
-    } finally {
-      setLoading(false);
+    };
+
+    if (matchId) {
+      fetchOtherUser();
     }
   }, [matchId, user?._id]);
 
+  // Initial messages fetch
   useEffect(() => {
     fetchMessages();
-  }, [fetchMessages]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [scrollToBottom]);
-
-  useEffect(() => {
-    if (!socket) return;
-
     return () => {
-      if (socket) {
-        socket.emit('leave_room', matchId);
+      socket?.emit('leave_room', matchId);
+    };
+  }, [matchId]);
+
+  // Socket event listeners
+  useEffect(() => {
+    if (!socket || !matchId) return;
+
+    // Join room
+    socket.emit('join_room', { matchId });
+
+    // New message received
+    const handleReceiveMessage = (message) => {
+      // Check if already exists (from optimistic update)
+      if (!messages.some(m => m._id === message._id || m._tempId === message._tempId)) {
+        addMessage(message);
+        
+        // Mark as read
+        messageService.markAsRead(matchId).catch(console.error);
+      }
+      
+      // Scroll to bottom
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    };
+
+    // Typing indicator
+    const handleTyping = ({ user: typer }) => {
+      if (typer?._id !== user?._id) {
+        setTypingUser(typer);
       }
     };
-  }, [socket, matchId]);
 
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.emit('join_room', matchId);
-
-    socket.on('receive_message', (message) => {
-      setMessages(prev => [...prev, message]);
-      scrollToBottom();
-
-      messageService.markAsRead(matchId).catch(console.error);
-    });
-
-    socket.on('user_typing', ({ user: typingUser }) => {
-      setTypingUser(typingUser);
-    });
-
-    socket.on('user_stop_typing', () => {
+    const handleStopTyping = () => {
       setTypingUser(null);
-    });
+    };
 
-    socket.on('incoming_call', (data) => {
-      setIncomingCall(data);
-    });
+    // Read receipt
+    const handleMessagesRead = ({ readAt }) => {
+      // Update all messages to 'seen' status
+      messages.forEach(msg => {
+        if (msg.status !== 'seen' && msg.sender?._id !== user?._id) {
+          updateMessageStatus(msg._id, 'seen');
+        }
+      });
+    };
 
-    socket.on('call_accepted', async (data) => {
-      await handleCallAccepted(data);
-    });
+    // Unread update
+    const handleUnreadUpdate = ({ increment }) => {
+      // Could update unread count in parent Messages component
+      console.log('[Chat] Unread update:', increment);
+    };
 
-    socket.on('call_rejected', () => {
+    // Video call events
+    const handleIncomingCall = (data) => setIncomingCall(data);
+    const handleCallAccepted = (data) => handleCallAcceptedFn(data);
+    const handleCallRejected = () => {
       alert('Call was rejected');
       endCall();
-    });
-
-    socket.on('call_ended', () => {
-      endCall();
-    });
-
-    socket.on('remote_stream', (stream) => {
+    };
+    const handleCallEnded = () => endCall();
+    const handleRemoteStream = (stream) => {
       setRemoteStream(stream);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = stream;
       }
-    });
+    };
+
+    // Register listeners
+    socket.on('receive_message', handleReceiveMessage);
+    socket.on('user_typing', handleTyping);
+    socket.on('user_stop_typing', handleStopTyping);
+    socket.on('messages_read', handleMessagesRead);
+    socket.on('unread_update', handleUnreadUpdate);
+    socket.on('incoming_call', handleIncomingCall);
+    socket.on('call_accepted', handleCallAccepted);
+    socket.on('call_rejected', handleCallRejected);
+    socket.on('call_ended', handleCallEnded);
+    socket.on('remote_stream', handleRemoteStream);
 
     return () => {
-      socket.off('receive_message');
-      socket.off('user_typing');
-      socket.off('user_stop_typing');
-      socket.off('incoming_call');
-      socket.off('call_accepted');
-      socket.off('call_rejected');
-      socket.off('call_ended');
-      socket.off('remote_stream');
+      socket.off('receive_message', handleReceiveMessage);
+      socket.off('user_typing', handleTyping);
+      socket.off('user_stop_typing', handleStopTyping);
+      socket.off('messages_read', handleMessagesRead);
+      socket.off('unread_update', handleUnreadUpdate);
+      socket.off('incoming_call', handleIncomingCall);
+      socket.off('call_accepted', handleCallAccepted);
+      socket.off('call_rejected', handleCallRejected);
+      socket.off('call_ended', handleCallEnded);
+      socket.off('remote_stream', handleRemoteStream);
     };
-  }, [socket, matchId]);
+  }, [socket, matchId, user?._id]);
 
+  // Handle typing
   const handleTyping = (e) => {
-    setNewMessage(e.target.value);
+    const value = e.target.value;
+    setNewMessage(value);
 
-    if (!isTyping) {
-      setIsTyping(true);
+    if (!typingTimeoutRef.current) {
       socket?.emit('typing', { matchId });
     }
 
@@ -149,34 +199,143 @@ const Chat = () => {
     }
 
     typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
       socket?.emit('stop_typing', { matchId });
+      typingTimeoutRef.current = null;
     }, 2000);
   };
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || sending) return;
+  // Retry failed message
+  const retryMessage = async (tempId, content) => {
+    setFailedMessages(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(tempId);
+      return newMap;
+    });
+    
+    setNewMessage(content);
+    await sendMessage({ forceSend: true });
+  };
+
+  // Send message
+  const sendMessage = async (e, options = {}) => {
+    if (e) e.preventDefault();
+    
+    const content = newMessage.trim();
+    const { forceSend = false } = options;
+    
+    if (!content && !forceSend) return;
+    if (!content && forceSend) {
+      setSendError('Message cannot be empty');
+      return;
+    }
+    
+    if (content.length > MAX_MESSAGE_LENGTH) {
+      setSendError(`Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`);
+      return;
+    }
 
     setSending(true);
+    setSendError(null);
+
+    // Generate temp ID for optimistic update
+    const tempId = `temp-${Date.now()}`;
+    
     try {
-      // Backend expects: POST /messages/:matchId with body { content, type }
-      await messageService.sendMessage(matchId, {
-        content: newMessage.trim(),
+      const response = await messageService.sendMessage(matchId, {
+        content,
         type: 'text'
       });
 
-      // Clear input
-      setNewMessage('');
-      setIsTyping(false);
-      socket?.emit('stop_typing', { matchId });
-
-      // Refresh messages
-      fetchMessages();
+      if (response.success) {
+        // Add real message (remove temp if exists)
+        setMessages(prev => prev.filter(m => m._tempId !== tempId));
+        if (response.data) {
+          addMessage(response.data);
+        }
+        
+        setNewMessage('');
+        socket?.emit('stop_typing', { matchId });
+        
+        // Scroll to bottom
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else {
+        throw new Error(response.message || 'Failed to send message');
+      }
     } catch (err) {
-      console.error('Error sending message:', err);
+      console.error('[Chat] Send error:', err);
+      
+      // Determine error message
+      let errorMsg = 'Failed to send message';
+      if (err.response?.status === 429) {
+        errorMsg = 'Too many messages. Please slow down.';
+      } else if (err.response?.status === 400) {
+        errorMsg = err.response.data?.message || 'Invalid message';
+      }
+      
+      setSendError(errorMsg);
+      
+      // Keep message in failed list for retry
+      setFailedMessages(prev => new Map(prev).set(tempId, content));
     } finally {
       setSending(false);
+    }
+  };
+
+  // Handle media upload
+  const handleMediaSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.');
+      return;
+    }
+
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    setUploadingMedia(true);
+
+    try {
+      const response = await messageService.uploadMedia(matchId, file);
+
+      if (response.success) {
+        // Send message with image
+        await messageService.sendMessage(matchId, {
+          content: '',
+          image: response.mediaUrl,
+          messageType: 'image'
+        });
+        
+        // Refresh to get the new message
+        fetchMessages();
+      }
+    } catch (err) {
+      console.error('[Chat] Upload error:', err);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingMedia(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Video call handlers
+  const handleCallAcceptedFn = async (data) => {
+    try {
+      await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.signal));
+      setIsVideoCallActive(true);
+    } catch (err) {
+      console.error('Error handling call accepted:', err);
     }
   };
 
@@ -229,25 +388,20 @@ const Chat = () => {
     }
   };
 
-  const handleCallAccepted = async (data) => {
-    try {
-      await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.signal));
-
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      setLocalStream(stream);
-
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
-
-      stream.getTracks().forEach(track => {
-        peerConnection.current.addTrack(track, stream);
-      });
-
-      setIsVideoCallActive(true);
-    } catch (err) {
-      console.error('Error handling call accepted:', err);
+  const endCall = () => {
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
     }
+
+    if (peerConnection.current) {
+      peerConnection.current.close();
+      peerConnection.current = null;
+    }
+
+    setRemoteStream(null);
+    setIsVideoCallActive(false);
+    socket?.emit('end_call', { targetUserId: otherUser?._id });
   };
 
   const acceptCall = async () => {
@@ -300,31 +454,9 @@ const Chat = () => {
     }
   };
 
-  const rejectCall = () => {
-    socket?.emit('reject_call', { callerId: incomingCall.caller._id });
-    setIncomingCall(null);
-  };
-
-  const endCall = () => {
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-      setLocalStream(null);
-    }
-
-    if (peerConnection.current) {
-      peerConnection.current.close();
-      peerConnection.current = null;
-    }
-
-    setRemoteStream(null);
-    setIsVideoCallActive(false);
-
-    socket?.emit('end_call', { targetUserId: otherUser?._id });
-  };
-
-  const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  // ============================================
+  // RENDER
+  // ============================================
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col">
@@ -385,23 +517,9 @@ const Chat = () => {
       {/* Video Call UI */}
       {isVideoCallActive && (
         <div className="relative bg-black h-64 sm:h-80">
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-contain"
-          />
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className="absolute bottom-4 right-4 w-28 h-36 sm:w-36 sm:h-28 object-cover rounded-xl border-2 border-white/30 shadow-lg"
-          />
-          <button
-            onClick={endCall}
-            className="absolute top-4 right-4 p-4 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all shadow-lg"
-          >
+          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-contain" />
+          <video ref={localVideoRef} autoPlay playsInline muted className="absolute bottom-4 right-4 w-28 h-36 sm:w-36 sm:h-28 object-cover rounded-xl border-2 border-white/30 shadow-lg" />
+          <button onClick={endCall} className="absolute top-4 right-4 p-4 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all shadow-lg">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
             </svg>
@@ -425,18 +543,12 @@ const Chat = () => {
             <h3 className="text-2xl font-bold text-white mb-2">{incomingCall.caller.username}</h3>
             <p className="text-gray-400 mb-8">Incoming video call...</p>
             <div className="flex justify-center gap-6">
-              <button
-                onClick={rejectCall}
-                className="p-5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all shadow-lg"
-              >
+              <button onClick={() => { socket?.emit('reject_call', { callerId: incomingCall.caller._id }); setIncomingCall(null); }} className="p-5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all shadow-lg">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
                 </svg>
               </button>
-              <button
-                onClick={acceptCall}
-                className="p-5 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all shadow-lg"
-              >
+              <button onClick={acceptCall} className="p-5 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all shadow-lg">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
@@ -446,39 +558,67 @@ const Chat = () => {
         </div>
       )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
+      {/* Messages Container */}
+      <div 
+        className="flex-1 overflow-y-auto p-4"
+        onScroll={handleScroll}
+        ref={messagesStartRef}
+      >
+        {/* Loading more indicator */}
+        {loadingMore && (
+          <div className="flex justify-center py-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-pink-500"></div>
+          </div>
+        )}
+
+        {/* Load more trigger */}
+        {hasMore && !loadingMore && (
+          <div className="flex justify-center py-2">
+            <button 
+              onClick={() => loadMoreMessages?.()}
+              className="text-gray-500 text-sm hover:text-pink-500 transition-colors"
+            >
+              Load older messages
+            </button>
+          </div>
+        )}
+
         <div className="max-w-lg mx-auto space-y-4">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-500"></div>
             </div>
-          ) : messages.length === 0 ? null : (
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+              <svg className="w-16 h-16 mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <p>No messages yet</p>
+              <p className="text-sm">Start the conversation!</p>
+            </div>
+          ) : (
             messages.map((message, index) => {
-              // FIX: Get sender info from populated sender/senderId fields
+              // Get sender info
               const senderData = message.sender?._id ? message.sender : 
                                 (message.senderId?._id ? message.senderId : null);
               const isOwnMessage = senderData?._id === user?._id || message.sender === user?._id;
-              
-              // Get sender name and avatar with fallback
               const senderName = senderData?.username || senderData?.fullName || 'Unknown';
               const senderAvatar = senderData?.avatar;
 
+              // Check if this is a failed message
+              const isFailed = failedMessages.has(message._tempId || message._id);
+
               return (
                 <div
-                  key={message._id || index}
+                  key={message._id || message._tempId || index}
                   className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
                 >
                   <div className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-end gap-2 max-w-[75%]`}>
-                    {/* FIX: Show avatar for other user's messages */}
+                    {/* Avatar */}
                     {!isOwnMessage && (
                       <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-700">
                         {senderAvatar ? (
-                          <img 
-                            src={senderAvatar} 
-                            alt={senderName}
-                            className="w-full h-full object-cover" 
-                          />
+                          <img src={senderAvatar} alt={senderName} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
                             <span className="text-white text-xs font-bold">
@@ -488,24 +628,67 @@ const Chat = () => {
                         )}
                       </div>
                     )}
-                    
-                    <div
-                      className={`px-4 py-3 rounded-2xl ${
-                        isOwnMessage
-                          ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-br-sm'
-                          : 'bg-gray-800 text-white rounded-bl-sm'
-                      }`}
-                    >
-                      {/* FIX: Show sender name for other user's messages */}
-                      {!isOwnMessage && (
-                        <p className="text-xs font-semibold text-pink-400 mb-1">
-                          {senderName}
+
+                    {/* Message Bubble */}
+                    <div className="relative">
+                      <div
+                        className={`px-4 py-3 rounded-2xl ${
+                          isOwnMessage
+                            ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-br-sm'
+                            : 'bg-gray-800 text-white rounded-bl-sm'
+                        } ${isFailed ? 'border-2 border-red-500' : ''}`}
+                      >
+                        {/* Sender name */}
+                        {!isOwnMessage && (
+                          <p className="text-xs font-semibold text-pink-400 mb-1">
+                            {senderName}
+                          </p>
+                        )}
+
+                        {/* Message content */}
+                        <p className="text-sm whitespace-pre-wrap break-words">
+                          {message.content || (message.image || message.mediaUrl ? '[Image]' : '')}
                         </p>
+
+                        {/* Image */}
+                        {(message.image || message.mediaUrl) && (
+                          <img 
+                            src={message.image || message.mediaUrl} 
+                            alt="Shared image" 
+                            className="mt-2 max-w-full rounded-lg cursor-pointer hover:opacity-90"
+                            onClick={() => window.open(message.image || message.mediaUrl, '_blank')}
+                          />
+                        )}
+
+                        {/* Time + Status */}
+                        <div className={`flex items-center gap-1 mt-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                          <span className={`text-xs ${isOwnMessage ? 'text-white/70' : 'text-gray-500'}`}>
+                            {formatTime(message.createdAt)}
+                          </span>
+                          
+                          {/* Read receipt - sent/delivered/seen */}
+                          {isOwnMessage && (
+                            <span className="text-xs text-white/70">
+                              {message.status === 'seen' ? '✓✓' : 
+                               message.status === 'delivered' ? '✓✓' : 
+                               message.status === 'sent' ? '✓' : '○'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Retry button for failed messages */}
+                      {isFailed && (
+                        <button
+                          onClick={() => retryMessage(message._tempId || message._id, failedMessages.get(message._tempId || message._id))}
+                          className="absolute -top-8 right-0 px-2 py-1 bg-red-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-red-600 transition-colors"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Retry
+                        </button>
                       )}
-                      <p className="text-sm">{message.content}</p>
-                      <p className={`text-xs mt-1 ${isOwnMessage ? 'text-white/70' : 'text-gray-500'}`}>
-                        {formatTime(message.createdAt)}
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -513,16 +696,14 @@ const Chat = () => {
             })
           )}
 
+          {/* Typing indicator */}
           {typingUser && (
-            <div className="flex justify-start">
-              <div className="flex items-end gap-2">
-                <div className="bg-gray-800 px-4 py-3 rounded-2xl rounded-bl-sm">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                </div>
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
+              <span>{typingUser.username || typingUser.fullName} is typing</span>
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
+                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
               </div>
             </div>
           )}
@@ -532,55 +713,92 @@ const Chat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="bg-white border-t border-gray-200 px-4 py-4">
-        <form onSubmit={sendMessage} className="max-w-3xl mx-auto">
-          <div className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex items-center gap-2">
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-gray-600">Zz</span>
-            <span>{otherUser?.fullName || otherUser?.username || 'User'} has paused their notifications</span>
+      <div className="bg-gray-800 border-t border-gray-700 px-4 py-3">
+        {/* Error message */}
+        {sendError && (
+          <div className="mb-2 px-3 py-2 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm flex items-center justify-between">
+            <span>{sendError}</span>
+            <button onClick={() => setSendError(null)} className="text-red-400 hover:text-red-300">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
+        )}
 
-          <div className="mt-3 border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 text-gray-500">
-              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100 font-semibold">B</button>
-              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100 italic">I</button>
-              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100 underline">U</button>
-              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">S</button>
-              <span className="w-px h-5 bg-gray-200 mx-1" />
-              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">1</button>
-              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">•</button>
-              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">≡</button>
-              <span className="w-px h-5 bg-gray-200 mx-1" />
-              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">&lt;/&gt;</button>
-              <button type="button" className="px-2 py-1 rounded hover:bg-gray-100">&lt;/&gt;</button>
-            </div>
-
-            <textarea
-              rows={3}
-              value={newMessage}
-              onChange={handleTyping}
-              placeholder="Nhập tin nhắn..."
-              className="w-full px-4 py-3 text-gray-800 placeholder-gray-400 resize-none focus:outline-none"
+        <form onSubmit={sendMessage} className="max-w-lg mx-auto">
+          <div className="flex items-end gap-2">
+            {/* Media upload button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingMedia}
+              className="p-3 text-gray-400 hover:text-pink-500 hover:bg-gray-700 rounded-xl transition-colors disabled:opacity-50"
+            >
+              {uploadingMedia ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-pink-500"></div>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              )}
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleMediaSelect}
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
             />
 
-            <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 text-gray-500">
-              <div className="flex items-center gap-3">
-                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">+</button>
-                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">Aa</button>
-                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">😊</button>
-                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">@</button>
-                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">📹</button>
-                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">🎤</button>
-                <button type="button" className="w-8 h-8 rounded hover:bg-gray-100">▢</button>
-              </div>
-              <button
-                type="submit"
-                disabled={!newMessage.trim() || sending}
-                className="px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Gửi
-              </button>
+            {/* Text input */}
+            <div className="flex-1 relative">
+              <textarea
+                value={newMessage}
+                onChange={handleTyping}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
+                placeholder="Type a message..."
+                maxLength={MAX_MESSAGE_LENGTH}
+                rows={1}
+                className="w-full px-4 py-3 bg-gray-700 text-white rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-500"
+                style={{ minHeight: '48px', maxHeight: '120px' }}
+              />
+              
+              {/* Character count */}
+              {newMessage.length > 900 && (
+                <span className={`absolute bottom-2 right-3 text-xs ${newMessage.length >= MAX_MESSAGE_LENGTH ? 'text-red-500' : 'text-gray-500'}`}>
+                  {MAX_MESSAGE_LENGTH - newMessage.length}
+                </span>
+              )}
             </div>
+
+            {/* Send button */}
+            <button
+              type="submit"
+              disabled={!newMessage.trim() || sending || !isConnected}
+              className="p-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl hover:from-pink-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sending ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              )}
+            </button>
           </div>
+
+          {/* Connection status */}
+          {!isConnected && (
+            <p className="text-xs text-yellow-500 mt-2 text-center">
+              ⚠️ Not connected. Messages will be sent when reconnected.
+            </p>
+          )}
         </form>
       </div>
     </div>

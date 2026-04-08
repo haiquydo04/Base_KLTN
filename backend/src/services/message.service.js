@@ -27,11 +27,14 @@ export const getMessages = async (matchId, userId, { page = 1, limit = 50 } = {}
   const [messages, total] = await Promise.all([
     Message.find(query)
       .populate('sender senderId', 'username avatar')
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: 1 }) // ASC = chronological order (oldest first)
       .skip(skip)
-      .limit(limit),
+      .limit(limit)
+      .lean(),
     Message.countDocuments(query)
   ]);
+
+  // No need to reverse - already in correct order
 
   await Message.updateMany(
     {
@@ -44,7 +47,7 @@ export const getMessages = async (matchId, userId, { page = 1, limit = 50 } = {}
   );
 
   return {
-    messages: messages.reverse(),
+    messages, // Already in chronological order (ASC)
     pagination: { page, limit, total, pages: Math.ceil(total / limit) }
   };
 };
