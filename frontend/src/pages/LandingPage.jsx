@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { images } from '../assets/images';
 
@@ -11,7 +11,7 @@ const LandingPage = () => {
 
   const navItems = [
     { id: 'discover', label: 'Khám phá' },
-    { id: 'about', label: 'Về chúng tôii' },
+    { id: 'about', label: 'Về chúng tôi' },
     { id: 'support', label: 'Hỗ trợ' },
     { id: 'community', label: 'Nguyên tắc cộng đồng' },
   ];
@@ -178,7 +178,8 @@ const LandingPage = () => {
       <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-primary-100/70 blur-3xl" />
       <div className="pointer-events-none absolute top-24 -right-24 w-80 h-80 rounded-full bg-secondary-100/60 blur-3xl" />
 
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-rose-100 shadow-sm px-5 lg:px-10 py-4">
+      {/* HEADER: Thêm hiệu ứng fade-down để mượt mà khi load trang */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-rose-100 shadow-sm px-5 lg:px-10 py-4" data-aos="fade-down" data-aos-duration="800">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <Link to="/" className="text-xl sm:text-2xl font-extrabold text-rose-500 tracking-tight">
             LoveAI
@@ -238,7 +239,7 @@ const LandingPage = () => {
         {activeTab === 'discover' && (
           <>
             <section className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[calc(100vh-100px)]">
-              <div>
+              <div data-aos="fade-right" data-aos-duration="1000">
                 <div className="inline-flex items-center gap-2 rounded-full bg-primary-100/90 text-primary-700 px-3 py-1.5 text-xs font-semibold tracking-wide uppercase mb-6">
                   <span className="w-3.5 h-3.5 rounded-full bg-primary-500 text-white inline-flex items-center justify-center text-[9px]">*</span>
                   AI-Verified Connections
@@ -256,7 +257,7 @@ const LandingPage = () => {
                   Trải nghiệm không gian hẹn hò cao cấp, nơi AI giúp bạn sàng lọc những kết nối chân thành và an toàn tuyệt đối.
                 </p>
 
-                <div className="mt-7 flex flex-wrap gap-3">
+                <div className="mt-7 flex flex-wrap gap-3" data-aos="fade-up" data-aos-delay="300" data-aos-duration="900">
                   <button
                     onClick={openLoginPage}
                     className="px-6 py-3 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
@@ -272,9 +273,10 @@ const LandingPage = () => {
                 </div>
               </div>
 
-              <div className="relative flex justify-center lg:justify-end">
+              <div className="relative flex justify-center lg:justify-end" data-aos="fade-left" data-aos-duration="1000">
                 <div className="w-full max-w-sm aspect-[4/5] rounded-[2rem] bg-primary-100/60 p-5 shadow-[0_12px_50px_rgba(236,72,153,0.12)]">
-                  <div className="relative w-full h-full rounded-[1.8rem] bg-gradient-to-b from-primary-200 to-primary-50 overflow-hidden shadow-2xl border border-white/50">
+                  {/* Thay fade-up-left thành zoom-in để khối box bên trong bung ra sang trọng hơn */}
+                  <div className="relative w-full h-full rounded-[1.8rem] bg-gradient-to-b from-primary-200 to-primary-50 overflow-hidden shadow-2xl border border-white/50" data-aos="zoom-in" data-aos-delay="200" data-aos-duration="800">
                     {!imageError ? (
                       <img
                         src={images.landingHero}
@@ -303,13 +305,13 @@ const LandingPage = () => {
             </section>
 
             <section className="max-w-7xl mx-auto pt-6 lg:pt-12 pb-4">
-              <div className="text-center mb-8 lg:mb-10">
+              <div className="text-center mb-8 lg:mb-10" data-aos="fade-up" data-aos-duration="900">
                 <h2 className="text-2xl sm:text-3xl font-black text-gray-900">Công Nghệ Dẫn Lối Cảm Xúc</h2>
                 <div className="w-16 h-1 bg-primary-600 rounded-full mx-auto mt-3"></div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 items-stretch">
-                <article className="lg:col-span-2 rounded-[1.6rem] bg-primary-50 p-6 sm:p-7 border border-primary-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                <article className="lg:col-span-2 rounded-[1.6rem] bg-primary-50 p-6 sm:p-7 border border-primary-100 shadow-sm hover:shadow-md transition-shadow duration-200" data-aos="fade-up" data-aos-delay="100" data-aos-duration="900">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-center h-full">
                     <div>
                       <div className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center mb-5 shadow-md">
@@ -360,7 +362,7 @@ const LandingPage = () => {
                   </div>
                 </article>
 
-                <article className="rounded-[1.6rem] bg-gradient-to-br from-primary-50 via-white to-secondary-50 p-6 sm:p-7 border border-primary-200 flex flex-col shadow-[0_14px_34px_rgba(236,72,153,0.16)] hover:shadow-[0_20px_40px_rgba(236,72,153,0.22)] transition-all duration-300">
+                <article className="rounded-[1.6rem] bg-gradient-to-br from-primary-50 via-white to-secondary-50 p-6 sm:p-7 border border-primary-200 flex flex-col shadow-[0_14px_34px_rgba(236,72,153,0.16)] hover:shadow-[0_20px_40px_rgba(236,72,153,0.22)] transition-all duration-300" data-aos="fade-up" data-aos-delay="300" data-aos-duration="900">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary-100 to-secondary-100 text-primary-700 flex items-center justify-center mb-5 border border-white shadow-sm">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 14h.01M16 10h.01M9 16h6M7 20h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -387,7 +389,7 @@ const LandingPage = () => {
             </section>
 
             <section className="max-w-7xl mx-auto pt-6 lg:pt-10 pb-10">
-              <article className="relative rounded-[2rem] overflow-hidden min-h-[230px] sm:min-h-[280px] shadow-xl border border-white/30">
+              <article className="relative rounded-[2rem] overflow-hidden min-h-[230px] sm:min-h-[280px] shadow-xl border border-white/30" data-aos="zoom-in" data-aos-duration="900">
                 {!premiumImageError ? (
                   <img
                     src={images.premiumExperience}
@@ -425,7 +427,7 @@ const LandingPage = () => {
               </article>
             </section>
 
-            <section className="max-w-7xl mx-auto pt-6 pb-12 lg:pb-16 text-center">
+            <section className="max-w-7xl mx-auto pt-6 pb-12 lg:pb-16 text-center" data-aos="fade-up" data-aos-anchor-placement="top-bottom" data-aos-duration="900">
               <h3 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight tracking-tight">
                 Bạn đã sẵn sàng để yêu?
               </h3>
@@ -444,8 +446,9 @@ const LandingPage = () => {
           </>
         )}
 
+        {/* CÁC TAB KHÁC: Đã được bổ sung hiệu ứng AOS */}
         {activeTab === 'about' && (
-          <section className="max-w-7xl mx-auto py-10 lg:py-14">
+          <section className="max-w-7xl mx-auto py-10 lg:py-14" data-aos="fade-up" data-aos-duration="800">
             <div className="rounded-3xl bg-white border border-primary-100 shadow-sm p-8 sm:p-10 text-center">
               <h1 className="text-2xl sm:text-3xl font-black text-gray-900">Về Chúng Tôi</h1>
               <p className="mt-4 text-base text-gray-600">Trang này đang được cập nhật nội dung.</p>
@@ -454,7 +457,7 @@ const LandingPage = () => {
         )}
 
         {activeTab === 'support' && (
-          <section className="max-w-7xl mx-auto py-10 lg:py-14">
+          <section className="max-w-7xl mx-auto py-10 lg:py-14" data-aos="fade-up" data-aos-duration="800">
             <div className="rounded-3xl bg-white border border-primary-100 shadow-sm p-8 sm:p-10 text-center">
               <h1 className="text-2xl sm:text-3xl font-black text-gray-900">Hỗ Trợ</h1>
               <p className="mt-4 text-base text-gray-600">Trang này đang được cập nhật nội dung.</p>
@@ -464,7 +467,7 @@ const LandingPage = () => {
 
         {activeTab === 'community' && (
           <section className="max-w-7xl mx-auto py-8 lg:py-10">
-            <div className="rounded-[2rem] bg-gradient-to-r from-[#ff8fa3] via-[#ff9dcf] to-[#c8a6ff] p-7 sm:p-10 shadow-[0_14px_30px_rgba(221,123,185,0.2)] text-white">
+            <div className="rounded-[2rem] bg-gradient-to-r from-[#ff8fa3] via-[#ff9dcf] to-[#c8a6ff] p-7 sm:p-10 shadow-[0_14px_30px_rgba(221,123,185,0.2)] text-white" data-aos="fade-down" data-aos-duration="800">
               <span className="inline-flex items-center rounded-full bg-white/20 px-4 py-1.5 text-xs font-extrabold tracking-wide uppercase">
                 Chính sách an toàn cộng đồng
               </span>
@@ -478,7 +481,8 @@ const LandingPage = () => {
             </div>
 
             <div className="mt-8 grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-6 lg:gap-7">
-              <aside className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-6 h-fit">
+              {/* Sidebar Menu trượt từ trái sang */}
+              <aside className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-6 h-fit" data-aos="fade-right" data-aos-duration="800" data-aos-delay="100">
                 <h3 className="text-lg font-black text-gray-900 mb-4">Mục Chính</h3>
                 <div className="space-y-2">
                   {ruleMenu.map((item) => (
@@ -499,7 +503,8 @@ const LandingPage = () => {
                 </div>
               </aside>
 
-              <article className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-7 sm:p-8">
+              {/* Nội dung bên phải trượt từ phải sang */}
+              <article className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-7 sm:p-8" data-aos="fade-left" data-aos-duration="800" data-aos-delay="200">
                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-6">{ruleDetails[activeRuleTab].title}</h3>
 
                 {ruleDetails[activeRuleTab].intro?.length > 0 && (
@@ -533,7 +538,8 @@ const LandingPage = () => {
         )}
       </main>
 
-      <footer className="bg-primary-50/90 backdrop-blur border-t border-primary-100 px-5 lg:px-10 py-8">
+      {/* FOOTER: Bổ sung hiệu ứng fade-up */}
+      <footer className="bg-primary-50/90 backdrop-blur border-t border-primary-100 px-5 lg:px-10 py-8" data-aos="fade-up" data-aos-duration="800">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8">
           <Link to="/" className="text-2xl font-black text-rose-500 tracking-tight">
             LoveAI

@@ -18,8 +18,22 @@ import { messageService } from '../services/api';
 import Navbar from '../components/Navbar';
 
 const EMOJIS = ['😀', '😍', '🥰', '😂', '🤍', '🔥', '👏', '✨', '😭', '👍', '❤️', '🎉', '💯', '🌟', '💪'];
+const ICEBREAKERS = ['Say Hi 👋', "What's your weekend plan?", 'Bạn thích hẹn hò ở đâu?'];
 const FALLBACK_AVATAR = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80';
 const MAX_MESSAGE_LENGTH = 1000;
+
+const getDateLabel = (iso) => {
+  if (!iso) return 'Today';
+  const date = new Date(iso);
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.floor((startToday - startDate) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  return date.toLocaleDateString([], { month: 'long', day: 'numeric' });
+};
 
 const Messages = () => {
   const { user } = useAuthStore();
@@ -30,8 +44,10 @@ const Messages = () => {
   const [selectedConversationId, setSelectedConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [newMessage, setNewMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showComposerMenu, setShowComposerMenu] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -42,13 +58,24 @@ const Messages = () => {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [sendError, setSendError] = useState(null);
   const [failedMessages, setFailedMessages] = useState(new Map());
+  const [showSafetyMenu, setShowSafetyMenu] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [pendingImageFile, setPendingImageFile] = useState(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState('');
+  const [pendingImageName, setPendingImageName] = useState('');
 
   // Refs
   const messagesContainerRef = useRef(null);
   const messagesStartRef = useRef(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const fileAttachmentInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const shouldAutoScrollRef = useRef(true);
+  const pendingConversationAutoScrollRef = useRef(false);
+  const prevMessageCountRef = useRef(0);
+  const showScrollButtonRef = useRef(false);
 
   // ============================================
   // FETCH CONVERSATIONS
@@ -134,7 +161,18 @@ const Messages = () => {
   // HANDLE SCROLL
   // ============================================
   const handleMessagesScroll = useCallback((e) => {
-    const { scrollTop } = e.target;
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+    shouldAutoScrollRef.current = !isScrolledUp;
+
+    if (isScrolledUp && !showScrollButtonRef.current) {
+      showScrollButtonRef.current = true;
+      setShowScrollButton(true);
+    } else if (!isScrolledUp && showScrollButtonRef.current) {
+      showScrollButtonRef.current = false;
+      setShowScrollButton(false);
+    }
+
     if (scrollTop < 100 && hasMoreMessages && !loadingMore) {
       loadMoreMessages();
     }
@@ -143,9 +181,14 @@ const Messages = () => {
   // ============================================
   // SCROLL TO BOTTOM
   // ============================================
-  const scrollToBottom = useCallback((behavior = 'smooth') => {
+  const scrollToBottom = useCallback((behavior = 'smooth', force = false) => {
+    if (!force && !shouldAutoScrollRef.current) return;
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior });
+      if (showScrollButtonRef.current) {
+        showScrollButtonRef.current = false;
+        setShowScrollButton(false);
+      }
     }, 100);
   }, []);
 
@@ -160,6 +203,16 @@ const Messages = () => {
     if (selectedConversationId) {
       fetchMessages(selectedConversationId);
       socket?.emit('join_room', { matchId: selectedConversationId });
+      shouldAutoScrollRef.current = true;
+      pendingConversationAutoScrollRef.current = true;
+      prevMessageCountRef.current = 0;
+      showScrollButtonRef.current = false;
+      setShowScrollButton(false);
+      setShowSafetyMenu(false);
+      setShowComposerMenu(false);
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      });
     }
     return () => {
       if (selectedConversationId) {
@@ -169,8 +222,34 @@ const Messages = () => {
   }, [selectedConversationId]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (!selectedConversationId) return;
+
+    if (pendingConversationAutoScrollRef.current) {
+      scrollToBottom('auto', true);
+      pendingConversationAutoScrollRef.current = false;
+      prevMessageCountRef.current = messages.length;
+      return;
+    }
+
+    if (loadingMore) {
+      prevMessageCountRef.current = messages.length;
+      return;
+    }
+
+    if (messages.length > prevMessageCountRef.current) {
+      scrollToBottom('smooth');
+    }
+
+    prevMessageCountRef.current = messages.length;
+  }, [messages, selectedConversationId, loadingMore, scrollToBottom]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingImagePreview) {
+        URL.revokeObjectURL(pendingImagePreview);
+      }
+    };
+  }, [pendingImagePreview]);
 
   // ============================================
   // SOCKET LISTENERS
@@ -184,7 +263,7 @@ const Messages = () => {
           if (prev.some(m => m._id === message._id)) return prev;
           return [...prev, message];
         });
-        scrollToBottom();
+        scrollToBottom('smooth');
         messageService.markAsRead(selectedConversationId).catch(() => {});
       }
       fetchConversations();
@@ -267,7 +346,9 @@ const Messages = () => {
       return newMap;
     });
     setNewMessage(content);
-    handleSend();
+    setTimeout(() => {
+      handleSend();
+    }, 0);
   };
 
   // ============================================
@@ -309,25 +390,49 @@ const Messages = () => {
       return;
     }
 
+    if (pendingImagePreview) {
+      URL.revokeObjectURL(pendingImagePreview);
+    }
+
+    setPendingImageFile(file);
+    setPendingImageName(file.name);
+    setPendingImagePreview(URL.createObjectURL(file));
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const clearPendingImage = useCallback(() => {
+    if (pendingImagePreview) {
+      URL.revokeObjectURL(pendingImagePreview);
+    }
+    setPendingImageFile(null);
+    setPendingImagePreview('');
+    setPendingImageName('');
+  }, [pendingImagePreview]);
+
+  const sendPendingImage = useCallback(async () => {
+    if (!pendingImageFile || !selectedConversationId || uploadingMedia) return;
+
     setUploadingMedia(true);
+    setSendError(null);
     try {
-      const uploadRes = await messageService.uploadMedia(selectedConversationId, file);
-      if (uploadRes.success) {
+      const uploadRes = await messageService.uploadMedia(selectedConversationId, pendingImageFile);
+      if (uploadRes?.success) {
         await messageService.sendMessage(selectedConversationId, {
           content: '',
-          image: uploadRes.mediaUrl,
+          image: uploadRes?.mediaUrl,
           messageType: 'image'
         });
         fetchMessages(selectedConversationId);
         fetchConversations();
+        clearPendingImage();
       }
     } catch {
-      alert('Không thể tải ảnh lên');
+      setSendError('Không thể gửi ảnh');
     } finally {
       setUploadingMedia(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  };
+  }, [pendingImageFile, selectedConversationId, uploadingMedia, fetchMessages, fetchConversations, clearPendingImage]);
 
   // ============================================
   // HELPERS
@@ -358,6 +463,7 @@ const Messages = () => {
 
   // Filter conversations
   const filteredConversations = conversations.filter(conv => {
+    if (activeFilter === 'unread' && !(conv?.unreadCount > 0)) return false;
     if (!search.trim()) return true;
     const otherUser = conv.userId;
     const name = otherUser?.fullName || otherUser?.username || '';
@@ -377,45 +483,63 @@ const Messages = () => {
   // RENDER
   // ============================================
   return (
-    <div className="min-h-screen" style={{ background: '#fff7f7' }}>
+    <div className="h-screen w-full bg-white overflow-hidden">
       <Navbar />
 
-      <main className="pt-6 pb-10 px-4">
-        <div className="max-w-7xl mx-auto grid grid-cols-12 gap-4" style={{ height: 'calc(100vh - 100px)' }}>
+      <main className="h-[calc(100vh-80px)] w-full">
+        <div className="flex h-full w-full">
 
           {/* ========== LEFT: Conversations List ========== */}
           <section 
-            className="col-span-12 md:col-span-4 lg:col-span-3"
-            style={{ height: 'calc(100vh - 100px)' }}
+            className="w-full md:w-[340px] lg:w-[360px] shrink-0 border-r border-gray-300 bg-white flex flex-col"
           >
-            <div className="bg-white rounded-[20px] border border-rose-100 shadow-sm p-4 h-full flex flex-col">
+            <div className="h-full flex flex-col">
               {/* Header */}
-              <div className="flex items-center justify-between mb-3">
-                <h1 className="text-lg font-bold text-gray-900">Tin nhắn</h1>
-                {conversations.length > 0 && (
-                  <span className="text-xs font-semibold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">
-                    {conversations.length}
-                  </span>
-                )}
-              </div>
+              <div className="shrink-0 px-4 pt-4 pb-3 border-b border-gray-300">
+                <div className="flex items-center justify-between mb-3">
+                  <h1 className="text-lg font-bold text-gray-900">Tin nhắn</h1>
+                  {conversations.length > 0 && (
+                    <span className="text-xs font-semibold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">
+                      {conversations.length}
+                    </span>
+                  )}
+                </div>
 
               {/* Search */}
-              <div className="relative mb-3">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
-                  </svg>
-                </span>
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Tìm kiếm..."
-                  className="w-full h-9 pl-9 pr-3 rounded-full bg-rose-50 text-sm text-gray-700 placeholder-gray-400 border border-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-200"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
+                    </svg>
+                  </span>
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Tìm kiếm..."
+                    className="w-full h-9 pl-10 pr-3 rounded-full bg-rose-50 text-sm text-gray-700 placeholder-gray-400 border border-rose-100 focus:outline-none focus:ring-2 focus:ring-pink-300 transition-all"
+                  />
+                </div>
+
+                <div className="mt-3 flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveFilter('all')}
+                    className={`pb-1 text-sm font-medium border-b-2 transition-colors ${activeFilter === 'all' ? 'text-rose-600 border-rose-500' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveFilter('unread')}
+                    className={`pb-1 text-sm font-medium border-b-2 transition-colors ${activeFilter === 'unread' ? 'text-rose-600 border-rose-500' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
+                  >
+                    Chưa đọc
+                  </button>
+                </div>
               </div>
 
               {/* Conversation List */}
-              <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+              <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1 [scrollbar-width:thin] [scrollbar-color:#d1d5db_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
                 {loadingConversations ? (
                   <div className="py-8 text-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-rose-500 mx-auto"></div>
@@ -433,8 +557,8 @@ const Messages = () => {
                       <button
                         key={conv.matchId}
                         onClick={() => setSelectedConversationId(conv.matchId)}
-                        className={`w-full flex items-center gap-2 p-2 rounded-xl transition-all ${
-                          isActive ? 'bg-rose-100 border border-rose-200' : 'hover:bg-rose-50/70 border border-transparent'
+                        className={`relative w-full flex items-center gap-2 p-2 rounded-xl cursor-pointer transition-colors duration-200 ${
+                          isActive ? 'bg-rose-100 border border-rose-200' : 'hover:bg-gray-50 border border-transparent'
                         }`}
                       >
                         {/* Avatar */}
@@ -449,7 +573,7 @@ const Messages = () => {
                             )}
                           </div>
                           {otherUser?.isOnline && (
-                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+                            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500"></span>
                           )}
                         </div>
 
@@ -468,7 +592,7 @@ const Messages = () => {
 
                         {/* Unread */}
                         {conv.unreadCount > 0 && (
-                          <span className="flex-shrink-0 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold">
+                          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white font-bold">
                             {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
                           </span>
                         )}
@@ -482,14 +606,13 @@ const Messages = () => {
 
           {/* ========== RIGHT: Chat Area ========== */}
           <section 
-            className="col-span-12 md:col-span-8 lg:col-span-9"
-            style={{ height: 'calc(100vh - 100px)' }}
+            className="flex-1 min-w-0 h-full bg-white"
           >
-            <div className="bg-white rounded-[20px] border border-rose-100 shadow-sm h-full flex flex-col overflow-hidden">
+            <div className="h-full flex flex-col overflow-hidden">
 
               {/* Chat Header */}
               {activeConversation ? (
-                <div className="px-4 py-3 border-b border-rose-100 flex items-center justify-between">
+                <div className="shrink-0 px-4 py-3 border-b border-gray-300 bg-white flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-rose-200">
                       {activeConversation.userId?.avatar ? (
@@ -516,18 +639,55 @@ const Messages = () => {
                   </div>
                   
                   {/* Video call button */}
-                  <Link
-                    to={`/chat/${activeConversation.matchId}`}
-                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
-                    title="Gọi video"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </Link>
+                  <div className="relative flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowSafetyMenu((prev) => !prev)}
+                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+                      title="More"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
+                    <Link
+                      to={`/chat/${activeConversation.matchId}`}
+                      className="p-2 text-pink-500 hover:text-pink-600 hover:scale-110 hover:bg-rose-50 rounded-full transition-transform duration-200"
+                      title="Gọi video"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </Link>
+
+                    {showSafetyMenu && (
+                      <div className="absolute right-0 top-12 z-20 min-w-[150px] rounded-xl border border-gray-300 bg-white shadow-lg p-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            console.log('Unmatch clicked', activeConversation?.matchId);
+                            setShowSafetyMenu(false);
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50"
+                        >
+                          Unmatch
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            console.log('Report User clicked', activeConversation?.userId?._id);
+                            setShowSafetyMenu(false);
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50"
+                        >
+                          Report User
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <div className="px-4 py-3 border-b border-rose-100">
+                <div className="shrink-0 px-4 py-3 border-b border-gray-300 bg-white">
                   <p className="text-sm text-gray-500">Chọn cuộc trò chuyện để bắt đầu</p>
                 </div>
               )}
@@ -536,7 +696,7 @@ const Messages = () => {
               <div 
                 ref={messagesStartRef}
                 onScroll={handleMessagesScroll}
-                className="flex-1 overflow-y-auto px-4 py-3 bg-gradient-to-b from-white to-rose-50/20"
+                className="relative flex-1 overflow-y-auto px-4 py-3 bg-gradient-to-b from-white to-rose-50/20 [scrollbar-width:thin] [scrollbar-color:#d1d5db_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
               >
                 {/* Load more indicator */}
                 {loadingMore && (
@@ -572,6 +732,18 @@ const Messages = () => {
                   <div className="flex flex-col items-center justify-center h-full text-gray-400">
                     <p className="text-sm">Bắt đầu cuộc trò chuyện</p>
                     <p className="text-xs mt-1">Gửi tin nhắn đầu tiên!</p>
+                    <div className="mt-4 flex flex-wrap justify-center gap-2 max-w-sm">
+                      {ICEBREAKERS.map((icebreaker) => (
+                        <button
+                          key={icebreaker}
+                          type="button"
+                          onClick={() => setNewMessage(icebreaker)}
+                          className="px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-xs text-rose-600 hover:bg-rose-100 transition-colors"
+                        >
+                          {icebreaker}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -582,12 +754,23 @@ const Messages = () => {
                       const senderName = senderData?.username || senderData?.fullName || 'Unknown';
                       const senderAvatar = senderData?.avatar;
                       const isFailed = failedMessages.has(msg._tempId || msg._id);
+                      const showDateDivider = idx === 0 || getDateLabel(messages[idx - 1]?.createdAt) !== getDateLabel(msg?.createdAt);
+                      const isLatestOwn = isOwn && idx === messages.length - 1;
+                      const statusText = msg?.status
+                        ? (msg.status === 'sending' ? 'Sending...' : msg.status === 'seen' ? 'Seen' : msg.status === 'delivered' ? 'Delivered' : 'Sent')
+                        : (sending && isLatestOwn ? 'Sending...' : 'Sent');
 
                       return (
-                        <div 
-                          key={msg._id || msg._tempId || idx} 
-                          className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                        >
+                        <div key={msg._id || msg._tempId || idx}>
+                          {showDateDivider && (
+                            <div className="sticky top-2 z-10 flex justify-center py-1">
+                              <span className="px-3 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-semibold text-gray-500 border border-rose-100 shadow-sm">
+                                {getDateLabel(msg?.createdAt)}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className={`flex animate-slide-up ${isOwn ? 'justify-end' : 'justify-start'}`}>
                           {!isOwn && (
                             <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mr-2">
                               {senderAvatar ? (
@@ -613,8 +796,8 @@ const Messages = () => {
                             {/* Message bubble */}
                             <div className={`relative inline-block rounded-2xl px-3 py-2 ${
                               isOwn
-                                ? 'bg-rose-600 text-white rounded-br-sm'
-                                : 'bg-rose-100 text-gray-700 rounded-bl-sm'
+                                ? 'bg-pink-500 text-white rounded-br-sm'
+                                : 'bg-pink-100 text-gray-900 rounded-bl-sm'
                             } ${isFailed ? 'ring-2 ring-red-400' : ''}`}>
                               {/* Text content */}
                               {msg.content && (
@@ -627,13 +810,13 @@ const Messages = () => {
                                   src={msg.image || msg.mediaUrl} 
                                   alt="" 
                                   className="mt-1 max-w-[200px] rounded-lg cursor-pointer hover:opacity-90"
-                                  onClick={() => window.open(msg.image || msg.mediaUrl, '_blank')}
+                                  onClick={() => setLightboxImage(msg.image || msg.mediaUrl)}
                                 />
                               )}
                             </div>
 
                             {/* Time + Status + Retry */}
-                            <div className={`flex items-center gap-1 mt-0.5 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`flex items-center gap-1 mt-0.5 ${isOwn ? 'justify-end pr-1' : 'justify-start pl-1'}`}>
                               {isFailed ? (
                                 <button
                                   onClick={() => retryMessage(msg._tempId, failedMessages.get(msg._tempId))}
@@ -646,34 +829,78 @@ const Messages = () => {
                                 </button>
                               ) : (
                                 <>
-                                  <span className={`text-[10px] ${isOwn ? 'text-gray-400' : 'text-gray-400'}`}>
+                                  <span className="text-[10px] text-gray-500">
                                     {formatTime(msg.createdAt)}
                                   </span>
                                   {isOwn && (
-                                    <span className="text-[10px] text-white/70">
-                                      {msg.status === 'seen' ? '✓✓' : 
-                                       msg.status === 'delivered' ? '✓✓' : 
-                                       msg.status === 'sent' ? '✓' : '○'}
+                                    <span className="inline-flex items-center gap-0.5">
+                                      {(msg?.status === 'seen' || msg?.status === 'delivered') && (
+                                        <svg className={`w-3 h-3 ${msg?.status === 'seen' ? 'text-pink-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      )}
+                                      <svg
+                                        className={`w-3 h-3 ${msg?.status === 'seen' ? 'text-pink-500' : msg?.status === 'sending' ? 'text-gray-300' : 'text-gray-400'}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                      </svg>
                                     </span>
                                   )}
                                 </>
                               )}
                             </div>
                           </div>
+                          </div>
                         </div>
                       );
                     })}
+
+                    {failedMessages.size > 0 && (
+                      <div className="flex flex-col items-end gap-2">
+                        {Array.from(failedMessages.entries()).map(([tempId, content]) => (
+                          <div key={tempId} className="flex items-center gap-2">
+                            <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-red-500 text-white text-[10px]" title="Retry">!</span>
+                            <button
+                              type="button"
+                              onClick={() => retryMessage(tempId, content)}
+                              className="text-[10px] text-red-500 hover:text-red-600 underline"
+                              title="Retry"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <div ref={messagesEndRef} />
                   </div>
+                )}
+
+                {showScrollButton && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToBottom('smooth', true)}
+                    className="absolute bottom-24 right-1/2 translate-x-1/2 w-10 h-10 bg-white rounded-full border border-gray-300 shadow-lg flex items-center justify-center cursor-pointer hover:bg-gray-50"
+                    title="Scroll to bottom"
+                    aria-label="Scroll to bottom"
+                  >
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 10l5 5 5-5" />
+                    </svg>
+                  </button>
                 )}
               </div>
 
               {/* ========== Input Area ========== */}
               {activeConversation && (
-                <div className="px-4 pb-4 pt-2 border-t border-rose-100 bg-white">
+                <div className="shrink-0 bg-white relative">
                   {/* Send error */}
                   {sendError && (
-                    <div className="mb-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg text-red-600 text-xs flex items-center justify-between">
+                    <div className="mx-4 mt-2 mb-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg text-red-600 text-xs flex items-center justify-between">
                       <span>{sendError}</span>
                       <button onClick={() => setSendError(null)} className="text-red-400 hover:text-red-600">✕</button>
                     </div>
@@ -681,7 +908,7 @@ const Messages = () => {
 
                   {/* Emoji picker */}
                   {showEmojiPicker && (
-                    <div className="mb-2 rounded-xl border border-rose-100 bg-rose-50 p-2 flex flex-wrap gap-1">
+                    <div className="mx-4 mb-2 rounded-xl border border-rose-100 bg-rose-50 p-2 flex flex-wrap gap-1">
                       {EMOJIS.map((emoji) => (
                         <button
                           key={emoji}
@@ -695,22 +922,68 @@ const Messages = () => {
                     </div>
                   )}
 
+                  {pendingImagePreview && (
+                    <div className="mx-4 mb-2 flex items-center gap-2 rounded-xl border border-rose-100 bg-rose-50 p-2">
+                      <img src={pendingImagePreview} alt="Preview" className="w-12 h-12 rounded-md object-cover border border-rose-200" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-gray-600 truncate">{pendingImageName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearPendingImage}
+                        className="w-6 h-6 rounded-full bg-white text-gray-500 hover:text-gray-700 border border-rose-100"
+                        title="Cancel"
+                      >
+                        ×
+                      </button>
+                      <button
+                        type="button"
+                        onClick={sendPendingImage}
+                        disabled={uploadingMedia}
+                        className="px-2 py-1 rounded-md bg-rose-500 text-white text-xs hover:bg-rose-600 disabled:opacity-50"
+                      >
+                        Send
+                      </button>
+                    </div>
+                  )}
+
+                  {showComposerMenu && (
+                    <div className="mx-4 mb-2 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-2">
+                      <button type="button" onClick={() => setShowEmojiPicker((prev) => !prev)} className="p-2 text-pink-500 hover:bg-white rounded-lg" title="Smile">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      </button>
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-pink-500 hover:bg-white rounded-lg" title="Image">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      </button>
+                      <button type="button" onClick={() => fileAttachmentInputRef.current?.click()} className="p-2 text-pink-500 hover:bg-white rounded-lg" title="Paperclip">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.586-6.586a4 4 0 00-5.656-5.656L5.757 10.757a6 6 0 108.486 8.486L20 13" /></svg>
+                      </button>
+                      <button type="button" className="p-2 text-pink-500 hover:bg-white rounded-lg" title="Text">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M10 7v10m4-10v10" /></svg>
+                      </button>
+                      <button type="button" className="p-2 text-pink-500 hover:bg-white rounded-lg" title="AtSign">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8a6 6 0 10-4.47 9.71c1.34.31 2.75.14 4-.49M16 8v4a2 2 0 104 0V8a8 8 0 10-2.34 5.66" /></svg>
+                      </button>
+                      <button type="button" className="p-2 text-pink-500 hover:bg-white rounded-lg" title="List">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+                      </button>
+                      <button type="button" className="p-2 text-pink-500 hover:bg-white rounded-lg" title="Bell">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.4-1.4A2 2 0 0118 14.17V11a6 6 0 10-12 0v3.17a2 2 0 01-.6 1.42L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Input row */}
-                  <div className="flex items-end gap-2">
-                    {/* Media button */}
+                  <div className="flex flex-row items-center justify-between gap-3 p-4 border-t border-gray-300">
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingMedia}
-                      className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
+                      onClick={() => setShowComposerMenu((prev) => !prev)}
+                      className="p-2 text-pink-500 hover:text-pink-600 hover:bg-pink-50 rounded-full transition-colors"
+                      title="More"
                     >
-                      {uploadingMedia ? (
-                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-rose-500"></div>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      )}
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
                     </button>
                     <input
                       type="file"
@@ -720,6 +993,15 @@ const Messages = () => {
                       className="hidden"
                     />
 
+                    <input
+                      type="file"
+                      ref={fileAttachmentInputRef}
+                      className="hidden"
+                      onChange={() => {
+                        if (fileAttachmentInputRef.current) fileAttachmentInputRef.current.value = '';
+                      }}
+                    />
+
                     {/* Text input */}
                     <div className="flex-1 relative">
                       <textarea
@@ -727,9 +1009,9 @@ const Messages = () => {
                         onChange={handleTyping}
                         onKeyDown={handleKeyDown}
                         rows={1}
-                        placeholder="Nhắn tin..."
+                        placeholder="Enter message..."
                         maxLength={MAX_MESSAGE_LENGTH}
-                        className="w-full px-4 py-2 bg-rose-50 rounded-2xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-200 resize-none"
+                        className="w-full flex-1 px-4 py-2 bg-pink-50 rounded-2xl text-sm text-gray-700 text-left placeholder:text-left placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-300 resize-none"
                         style={{ minHeight: '40px', maxHeight: '100px' }}
                       />
                       {/* Character count */}
@@ -740,27 +1022,18 @@ const Messages = () => {
                       )}
                     </div>
 
-                    {/* Emoji toggle */}
-                    <button
-                      type="button"
-                      onClick={() => setShowEmojiPicker(prev => !prev)}
-                      className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
-                    >
-                      <span className="text-lg">😊</span>
-                    </button>
-
                     {/* Send button */}
                     <button
                       type="button"
                       onClick={handleSend}
                       disabled={!newMessage.trim() || sending || !isConnected}
-                      className="p-2 bg-rose-500 text-white rounded-full hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="p-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {sending ? (
                         <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
                       ) : (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12h14m0 0l-4-4m4 4l-4 4" />
                         </svg>
                       )}
                     </button>
@@ -785,6 +1058,24 @@ const Messages = () => {
         <div className="fixed bottom-4 right-4 bg-red-500 text-white text-sm px-4 py-2 rounded-xl shadow-lg z-50 flex items-center gap-2">
           {error}
           <button onClick={() => setError('')} className="text-white/80 hover:text-white">✕</button>
+        </div>
+      )}
+
+      {lightboxImage && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightboxImage(null)}>
+          <button
+            type="button"
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/20 text-white hover:bg-white/30"
+          >
+            ✕
+          </button>
+          <img
+            src={lightboxImage}
+            alt="Preview"
+            className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>

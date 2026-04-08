@@ -58,8 +58,8 @@ const Register = () => {
       <div className="pointer-events-none fixed -top-24 -left-24 w-72 h-72 rounded-full bg-primary-100/70 blur-3xl z-0" />
       <div className="pointer-events-none fixed top-24 -right-24 w-80 h-80 rounded-full bg-secondary-100/60 blur-3xl z-0" />
 
-      {/* Header */}
-      <header className="absolute top-0 left-0 w-full z-50 px-5 lg:px-10 py-5">
+      {/* Header - Trượt từ trên xuống */}
+      <header className="absolute top-0 left-0 w-full z-50 px-5 lg:px-10 py-5" data-aos="fade-down" data-aos-duration="800">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link to="/" className="text-2xl font-black text-primary-600 tracking-tight">LoveAI</Link>
           <p className="text-sm font-semibold text-gray-600 bg-white/60 backdrop-blur-md px-4 py-1.5 rounded-full shadow-sm border border-white/50">
@@ -71,29 +71,31 @@ const Register = () => {
 
       {/* ── Main — Unified Card Frame ── */}
       <main className="relative z-10 min-h-screen flex flex-col px-4 lg:px-8 pt-28 pb-12 lg:py-20">
-        <div className="w-full max-w-[960px] m-auto bg-white rounded-[2rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col lg:flex-row items-stretch">
+        {/* Card Lớn - Trượt từ dưới lên ôm trọn khối */}
+        <div className="w-full max-w-[960px] m-auto bg-white rounded-[2rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col lg:flex-row items-stretch" data-aos="fade-up" data-aos-duration="1000">
 
           {/* ═══ LEFT ═══ */}
           <div className="lg:w-[45%] p-6 lg:p-8 bg-gradient-to-b from-primary-50/50 to-white flex flex-col relative z-10 border-b lg:border-b-0 lg:border-r border-gray-100">
-            {/* Back */}
-            <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-primary-700 font-bold border border-primary-200 bg-white rounded-full px-3.5 py-1.5 w-fit mb-6 hover:bg-primary-50 transition-all shadow-sm">
+            
+            {/* Back - Trượt ngang */}
+            <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-primary-700 font-bold border border-primary-200 bg-white rounded-full px-3.5 py-1.5 w-fit mb-6 hover:bg-primary-50 transition-all shadow-sm" data-aos="fade-right" data-aos-delay="100">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
               Trang chủ
             </Link>
 
-            {/* Headline */}
-            <h1 className="text-3xl lg:text-3xl font-black leading-tight text-gray-900 mb-2">
+            {/* Headline - Trượt ngang nối tiếp */}
+            <h1 className="text-3xl lg:text-3xl font-black leading-tight text-gray-900 mb-2" data-aos="fade-right" data-aos-delay="200">
               Khởi đầu
               <span className="block bg-gradient-to-r from-primary-600 to-secondary-500 bg-clip-text text-transparent italic">
                 Hành Trình Tình Yêu
               </span>
               <span className="block">Cùng AI.</span>
             </h1>
-            <p className="text-gray-500 font-medium text-xs leading-relaxed mb-6 max-w-sm">
+            <p className="text-gray-500 font-medium text-xs leading-relaxed mb-6 max-w-sm" data-aos="fade-right" data-aos-delay="300">
               Trải nghiệm kết đôi sang trọng — nơi AI thấu hiểu trái tim để tìm những tâm hồn đồng điệu.
             </p>
 
-            {/* Feature cards */}
+            {/* Feature cards - Trượt lên lần lượt */}
             <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">
               {[
                 {
@@ -107,7 +109,7 @@ const Register = () => {
                   title: '98% Hài lòng', desc: 'Kết đôi thành công'
                 },
               ].map((f, i) => (
-                <div key={i} className={`${f.bg} border ${f.border} rounded-2xl p-3 shadow-sm`}>
+                <div key={i} className={`${f.bg} border ${f.border} rounded-2xl p-3 shadow-sm`} data-aos="fade-up" data-aos-delay={400 + (i * 100)}>
                   <div className={`w-7 h-7 rounded-full ${f.iconBg} flex items-center justify-center mb-2`}>{f.icon}</div>
                   <p className="font-bold text-gray-800 text-xs">{f.title}</p>
                   <p className="text-gray-500 font-medium text-[11px] mt-0.5">{f.desc}</p>
@@ -115,8 +117,8 @@ const Register = () => {
               ))}
             </div>
 
-            {/* Photo — Automatically takes remaining space so left and right form match in height */}
-            <div className="flex-1 rounded-2xl overflow-hidden shadow-inner ring-1 ring-black/5 min-h-[160px] relative mt-auto">
+            {/* Photo — Phóng to nhẹ nhàng */}
+            <div className="flex-1 rounded-2xl overflow-hidden shadow-inner ring-1 ring-black/5 min-h-[160px] relative mt-auto" data-aos="zoom-in" data-aos-delay="600">
               <img src="/images/LandingPage/Couple.png" alt="Couple" className="absolute inset-0 w-full h-full object-cover object-top" />
             </div>
           </div>
@@ -124,7 +126,9 @@ const Register = () => {
           {/* ═══ RIGHT — Form ═══ */}
           <div className="lg:w-[55%] flex flex-col bg-white">
             <div className="px-6 lg:px-10 py-8 lg:py-10 flex-1 flex flex-col">
-              <div className="mb-6 text-center">
+              
+              {/* Tiêu đề form - Trượt từ phải sang */}
+              <div className="mb-6 text-center" data-aos="fade-left" data-aos-delay="300">
                 <h2 className="text-xl font-black text-pink-600">Tạo tài khoản mới</h2>
                 <p className="text-black-100 font-medium text-xs mt-1 italic">Bắt đầu câu chuyện tình yêu ngay hôm nay 💕</p>
               </div>
@@ -139,7 +143,8 @@ const Register = () => {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
+              {/* Nguyên cụm Form - Trượt từ phải sang (Đợi tiêu đề xuất hiện xong) */}
+              <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col" data-aos="fade-left" data-aos-delay="500">
                 <div className="space-y-3.5">
                   {/* Username */}
                   <div>
@@ -237,12 +242,6 @@ const Register = () => {
                       Facebook
                     </button>
                   </div>
-
-                  {/* Security */}
-                  <p className="text-center text-[11px] text-gray-500 font-semibold flex items-center justify-center gap-1.5 mt-2">
-                    <LockIcon />
-                    Dữ liệu được bảo mật tuyệt đối
-                  </p>
                 </div>
               </form>
             </div>

@@ -24,11 +24,12 @@ const Navbar = () => {
 
   const isDiscover = location.pathname === '/discover';
   const isMessages = location.pathname === '/messages' || location.pathname.startsWith('/chat/');
+  const isVideo = location.pathname === '/video-chat';
   const isUniLove = location.pathname === '/unilove';
   const isSafety = location.pathname === '/safety';
 
   return (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+    <nav className="bg-gray-50 border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center h-16 gap-8">
           {/* Logo */}
