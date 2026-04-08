@@ -4,6 +4,19 @@ import { useAuthStore } from '../store/authStore';
 
 const SocketContext = createContext(null);
 
+const getSocketUrl = () => {
+  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+  const host = window.location.host;
+  
+  // Production: use external backend URL from env or current origin
+  if (import.meta.env.PROD) {
+    return import.meta.env.VITE_API_URL || `${protocol}//${host}`;
+  }
+  
+  // Development: use local backend
+  return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+};
+
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -11,9 +24,14 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      const newSocket = io('/', {
+      const socketUrl = getSocketUrl();
+      const newSocket = io(socketUrl, {
         auth: { token },
         transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
       });
 
       newSocket.on('connect', () => {
