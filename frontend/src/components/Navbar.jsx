@@ -24,7 +24,7 @@ const Navbar = () => {
 
   const isDiscover = location.pathname === '/discover';
   const isMessages = location.pathname === '/messages' || location.pathname.startsWith('/chat/');
-  const isVideo = location.pathname === '/video-chat';
+  const isUniLove = location.pathname === '/unilove';
   const isSafety = location.pathname === '/safety';
 
   return (
