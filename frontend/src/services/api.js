@@ -202,6 +202,16 @@ export const matchService = {
   },
 
   /**
+   * Super Like a user
+   * Backend: POST /api/match/super { userId }
+   * Returns: { success, matched, message, isSuperMatch }
+   */
+  superLikeUser: async (userId) => {
+    const response = await api.post('/match/super', { userId });
+    return response.data;
+  },
+
+  /**
    * Get mutual likes
    * Backend: GET /api/match/mutual
    * Returns: { success, matches[] }

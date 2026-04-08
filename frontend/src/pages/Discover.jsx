@@ -71,6 +71,8 @@ const Discover = () => {
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [likeFlash, setLikeFlash] = useState(false);
   const [passFlash, setPassFlash] = useState(false);
+  const [superFlash, setSuperFlash] = useState(false);
+  const [superAnimation, setSuperAnimation] = useState(false);
 
   const fetchProfiles = useCallback(async (forceRefresh = false) => {
     console.log('[Discover] fetchProfiles called, forceRefresh:', forceRefresh);
@@ -156,10 +158,54 @@ const Discover = () => {
     setPassFlash(true); setTimeout(() => setPassFlash(false), 420);
     setActionLoading(true);
     try {
-      await matchService.passUser(cp._id);
+      const res = await matchService.passUser(cp._id);
+      console.log('[Discover] Pass response:', res);
       setCurrentIndex(i => i + 1);
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error('[Discover] Pass error:', err);
+      setCurrentIndex(i => i + 1); // Still move to next on error
+    }
     finally { setActionLoading(false); }
+  };
+
+  const handleSuperLike = async () => {
+    if (actionLoading || !cp) return;
+    setSuperFlash(true);
+    setSuperAnimation(true);
+    setActionLoading(true);
+    
+    try {
+      const res = await matchService.superLikeUser(cp._id);
+      console.log('[Discover] Super Like response:', res);
+      
+      // Show animation for 2 seconds
+      setTimeout(() => setSuperAnimation(false), 2000);
+      
+      // Check if it's a Super Match
+      if (res?.matched || res?.isSuperMatch) {
+        const conversationId = res?.match?._id || res?.matchId;
+        console.log('[Discover] Super Match! Navigating to /chat/', conversationId);
+        setTimeout(() => {
+          if (conversationId) {
+            navigate(`/chat/${conversationId}`);
+          }
+        }, 1500);
+        return; // Don't move to next profile
+      }
+      
+      // Not a match, move to next profile after animation
+      setTimeout(() => {
+        setCurrentIndex(i => i + 1);
+      }, 1500);
+    } catch (err) {
+      console.error('[Discover] Super Like error:', err);
+      setTimeout(() => setSuperAnimation(false), 2000);
+      setTimeout(() => setCurrentIndex(i => i + 1), 1500);
+    }
+    finally {
+      setActionLoading(false);
+      setTimeout(() => setSuperFlash(false), 420);
+    }
   };
 
   const getPhotos = (p) => {
@@ -449,19 +495,23 @@ const Discover = () => {
 
                   {/* SUPER LIKE */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                    <button disabled={actionLoading}
+                    <button 
+                      onClick={handleSuperLike}
+                      disabled={actionLoading}
                       style={{
-                        width: 46, height: 46, borderRadius: '50%', border: '2px solid #fcd34d',
-                        background: '#fff',
-                        boxShadow: '0 3px 12px rgba(251,191,36,0.22)',
+                        width: 46, height: 46, borderRadius: '50%', border: '2px solid',
+                        borderColor: superFlash ? '#fbbf24' : '#fcd34d',
+                        background: superFlash ? 'linear-gradient(135deg,#fef9c3,#fde68a)' : '#fff',
+                        boxShadow: superFlash ? '0 6px 18px rgba(251,191,36,0.45)' : '0 3px 12px rgba(251,191,36,0.22)',
                         cursor: actionLoading ? 'not-allowed' : 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all .2s', opacity: actionLoading ? 0.4 : 1
+                        transition: 'all .2s', opacity: actionLoading ? 0.4 : 1,
+                        transform: superFlash ? 'scale(1.15)' : 'scale(1)'
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.background = 'linear-gradient(135deg,#fef9c3,#fde68a)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(251,191,36,0.45)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 3px 12px rgba(251,191,36,0.22)'; }}
+                      onMouseEnter={e => { if (!superFlash && !actionLoading) { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.background = 'linear-gradient(135deg,#fef9c3,#fde68a)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(251,191,36,0.45)'; } }}
+                      onMouseLeave={e => { if (!superFlash) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 3px 12px rgba(251,191,36,0.22)'; } }}
                     >
-                      <svg width="18" height="18" fill="#fbbf24" viewBox="0 0 24 24">
+                      <svg width="18" height="18" fill={superFlash ? '#f59e0b' : '#fbbf24'} viewBox="0 0 24 24">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                       </svg>
                     </button>
@@ -562,6 +612,66 @@ const Discover = () => {
           </div>{/* end 3-col grid */}
         </div>{/* end max-w container */}
       </div>{/* end scroll area */}
+
+      {/* Super Like Animation Overlay */}
+      {superAnimation && (
+        <div 
+          style={{
+            position: 'fixed', 
+            inset: 0, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.7)',
+            zIndex: 1000,
+            animation: 'fadeIn 0.3s ease-out'
+          }}
+        >
+          <div 
+            style={{
+              textAlign: 'center',
+              animation: 'superLikePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+            }}
+          >
+            <div style={{ fontSize: 80, marginBottom: 16 }}>
+              ⭐
+            </div>
+            <h2 style={{ 
+              fontSize: 28, 
+              fontWeight: 800, 
+              color: '#fff',
+              textShadow: '0 0 30px rgba(251,191,36,0.8)',
+              marginBottom: 8
+            }}>
+              SUPER LIKE!
+            </h2>
+            <p style={{ 
+              fontSize: 14, 
+              color: '#fbbf24',
+              fontWeight: 500
+            }}>
+              Bạn đã gửi Super Like cho {cp?.fullName || cp?.username}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes superLikePop {
+          0% { transform: scale(0.5); opacity: 0; }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes starBurst {
+          0% { transform: scale(0) rotate(0deg); opacity: 1; }
+          100% { transform: scale(1.5) rotate(180deg); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 };
