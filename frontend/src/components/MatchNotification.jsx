@@ -278,7 +278,6 @@ export const useMatchNotification = () => {
 
     // Handle mutual match
     const handleNewMatch = (data) => {
-      console.log('[Notification] Received new_match event:', data);
       setMatchNotification(data);
       // Clear like notification if any
       setLikeNotification(null);
@@ -293,7 +292,6 @@ export const useMatchNotification = () => {
 
     // Handle non-mutual like (someone liked you)
     const handleNewLike = (data) => {
-      console.log('[Notification] Received new_like event:', data);
       // Only show like notification if not already showing a match
       if (!matchNotification) {
         setLikeNotification(data);

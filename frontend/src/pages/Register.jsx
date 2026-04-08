@@ -12,7 +12,13 @@ const Register = () => {
   const [validationError, setValidationError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  const getApiUrl = () => {
+    if (import.meta.env.PROD) {
+      return import.meta.env.VITE_API_URL || '';
+    }
+    return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  };
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
@@ -215,7 +221,7 @@ const Register = () => {
 
                   {/* Social */}
                   <div className="grid grid-cols-2 gap-3">
-                    <button type="button" onClick={() => window.location.href = `${API}/api/auth/google`}
+                    <button type="button" onClick={() => window.location.href = `${getApiUrl()}/api/auth/google`}
                       className="h-10 rounded-full border border-gray-200 bg-white text-[13px] text-gray-800 font-bold hover:bg-gray-50 hover:border-gray-300 inline-flex items-center justify-center gap-2 transition-all">
                       <svg className="w-4 h-4" viewBox="0 0 24 24">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57C21.36 18.5 22.56 15.6 22.56 12.25z" />
@@ -225,7 +231,7 @@ const Register = () => {
                       </svg>
                       Google
                     </button>
-                    <button type="button" onClick={() => window.location.href = `${API}/api/auth/facebook`}
+                    <button type="button" onClick={() => window.location.href = `${getApiUrl()}/api/auth/facebook`}
                       className="h-10 rounded-full border border-gray-200 bg-white text-[13px] text-gray-800 font-bold hover:bg-gray-50 hover:border-gray-300 inline-flex items-center justify-center gap-2 transition-all">
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#1877F2"><path d="M22.675 0h-21.35C.592 0 0 .592 0 1.326v21.348C0 23.408.592 24 1.325 24h11.495v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.408 24 22.674V1.326C24 .592 23.408 0 22.675 0" /></svg>
                       Facebook

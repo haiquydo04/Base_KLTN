@@ -50,9 +50,7 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await authService.login(credentials);
-      console.log('[AuthStore] Login response:', data);
       
-      // Ensure user and token are set
       if (data.token) {
         localStorage.setItem('token', data.token);
       }
@@ -63,7 +61,6 @@ export const useAuthStore = create((set, get) => ({
       set({ user: data.user, token: data.token, isLoading: false });
       return data;
     } catch (error) {
-      console.error('[AuthStore] Login error:', error);
       set({ 
         error: error.response?.data?.message || 'Login failed', 
         isLoading: false 
@@ -100,8 +97,8 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       await authService.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
+      // Ignore logout errors
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
@@ -119,7 +116,6 @@ export const useAuthStore = create((set, get) => ({
       set({ user: data.user, isLoading: false });
       return data;
     } catch (error) {
-      console.error('[AuthStore] fetchCurrentUser error:', error);
       set({ isLoading: false });
       throw error;
     }

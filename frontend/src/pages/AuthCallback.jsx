@@ -13,32 +13,26 @@ const AuthCallback = () => {
     const error = searchParams.get('error');
 
     if (error) {
-      console.error('OAuth error:', error);
       navigate('/login?error=' + error);
       return;
     }
 
     if (!token) {
-      console.error('No token received');
       navigate('/login?error=no_token');
       return;
     }
 
     try {
-      // Set token in store and localStorage
       setToken(token);
 
-      // Fetch user data with the new token
       const data = await fetchCurrentUser();
       
       if (data?.user) {
         setUser(data.user);
       }
 
-      // Redirect to discover page
       navigate('/discover');
-    } catch (error) {
-      console.error('Auth callback error:', error);
+    } catch {
       navigate('/login?error=auth_failed');
     }
   }, [searchParams, navigate, setUser, setToken, fetchCurrentUser]);

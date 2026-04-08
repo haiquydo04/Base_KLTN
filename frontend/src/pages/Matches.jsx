@@ -28,7 +28,6 @@ const Matches = () => {
       const matchList = response.matches || response.data?.matches || [];
       setMatches(matchList);
     } catch (err) {
-      console.error('Error fetching matches:', err);
       setError('Không thể tải danh sách kết nối. Vui lòng thử lại.');
     } finally {
       setLoading(false);
@@ -47,8 +46,7 @@ const Matches = () => {
     try {
       await matchService.unmatch(matchId);
       setMatches(prev => prev.filter(m => m._id !== matchId));
-    } catch (err) {
-      console.error('Error unmatching:', err);
+    } catch {
       setError('Không thể hủy kết nối');
     }
   };

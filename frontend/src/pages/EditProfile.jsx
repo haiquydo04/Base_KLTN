@@ -112,19 +112,16 @@ const EditProfile = () => {
         avatar: form.avatar,
         preferences: form.preferences,
       });
-      console.log('[EditProfile] Profile update response:', profileData);
 
       // Update interests separately (backend may handle this differently)
       try {
         await interestsService.updateAllInterests(selectedInterests);
-        console.log('[EditProfile] Interests updated');
-      } catch (e) {
-        console.warn('[EditProfile] Interest update failed:', e);
+      } catch {
+        // Silent failure for interests
       }
 
       // Extract user from response - handle multiple formats
       const updatedUser = profileData?.user || profileData?.data?.user || profileData;
-      console.log('[EditProfile] Updated user:', updatedUser);
 
       // Update auth store with merged data
       const mergedUser = {
@@ -137,7 +134,6 @@ const EditProfile = () => {
       setSuccess('Lưu thành công!');
       setTimeout(() => navigate('/profile'), 1200);
     } catch (err) {
-      console.error('[EditProfile] Submit error:', err);
       setError(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
     } finally {
       setLoading(false);

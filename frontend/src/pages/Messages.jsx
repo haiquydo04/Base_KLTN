@@ -69,7 +69,6 @@ const Messages = () => {
       }
       setError('');
     } catch (err) {
-      console.error('[Messages] Error fetching conversations:', err);
       setError('Không thể tải danh sách cuộc trò chuyện');
     } finally {
       setLoadingConversations(false);
@@ -114,7 +113,6 @@ const Messages = () => {
       // Mark as read
       await messageService.markAsRead(matchId).catch(() => {});
     } catch (err) {
-      console.error('[Messages] Error fetching messages:', err);
       setError('Không thể tải tin nhắn');
     } finally {
       setLoadingMessages(false);
@@ -250,7 +248,6 @@ const Messages = () => {
         throw new Error(response.message);
       }
     } catch (err) {
-      console.error('[Messages] Send error:', err);
       let errorMsg = 'Không thể gửi tin nhắn';
       if (err.response?.status === 429) {
         errorMsg = 'Gửi tin nhắn quá nhanh. Vui lòng chờ.';
@@ -324,8 +321,7 @@ const Messages = () => {
         fetchMessages(selectedConversationId);
         fetchConversations();
       }
-    } catch (err) {
-      console.error('[Messages] Upload error:', err);
+    } catch {
       alert('Không thể tải ảnh lên');
     } finally {
       setUploadingMedia(false);
