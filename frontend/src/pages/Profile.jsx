@@ -217,8 +217,6 @@ const Profile = () => {
         setIsOwnProfile(!id || id === currentUser?._id);
 
         const data = await userService.getUserById(userId);
-        console.log('[Profile] Raw API response:', data);
-        // FIX: Backend returns { success, user } - handle both formats
         const profileData = data?.user || data?.data?.user || data;
         if (!profileData?._id) {
           throw new Error('Invalid profile data received');
@@ -237,7 +235,6 @@ const Profile = () => {
   const handleLike = async () => {
     try {
       const data = await matchService.likeUser(profile._id);
-      console.log('[Profile] Like response:', data);
       if (data.matched) {
         alert(`It's a match! You can now chat with ${profile.username}`);
       }

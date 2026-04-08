@@ -77,7 +77,7 @@ const Chat = () => {
           setOtherUser(other);
         }
       } catch (err) {
-        console.error('[Chat] Error fetching user:', err);
+        // Error handled silently - user profile is not critical
       }
     };
 
@@ -108,7 +108,7 @@ const Chat = () => {
         addMessage(message);
         
         // Mark as read
-        messageService.markAsRead(matchId).catch(console.error);
+        messageService.markAsRead(matchId).catch(() => {});
       }
       
       // Scroll to bottom
@@ -141,7 +141,6 @@ const Chat = () => {
     // Unread update
     const handleUnreadUpdate = ({ increment }) => {
       // Could update unread count in parent Messages component
-      console.log('[Chat] Unread update:', increment);
     };
 
     // Video call events
@@ -264,9 +263,7 @@ const Chat = () => {
         throw new Error(response.message || 'Failed to send message');
       }
     } catch (err) {
-      console.error('[Chat] Send error:', err);
-      
-      // Determine error message
+      // Error handled with user-friendly message
       let errorMsg = 'Failed to send message';
       if (err.response?.status === 429) {
         errorMsg = 'Too many messages. Please slow down.';
@@ -276,7 +273,6 @@ const Chat = () => {
       
       setSendError(errorMsg);
       
-      // Keep message in failed list for retry
       setFailedMessages(prev => new Map(prev).set(tempId, content));
     } finally {
       setSending(false);
@@ -319,7 +315,6 @@ const Chat = () => {
         fetchMessages();
       }
     } catch (err) {
-      console.error('[Chat] Upload error:', err);
       alert('Failed to upload image. Please try again.');
     } finally {
       setUploadingMedia(false);
@@ -334,8 +329,8 @@ const Chat = () => {
     try {
       await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.signal));
       setIsVideoCallActive(true);
-    } catch (err) {
-      console.error('Error handling call accepted:', err);
+    } catch {
+      // Video call setup error handled silently
     }
   };
 
@@ -382,8 +377,7 @@ const Chat = () => {
       });
 
       setIsVideoCallActive(true);
-    } catch (err) {
-      console.error('Error starting video call:', err);
+    } catch {
       alert('Could not start video call. Please check camera/microphone permissions.');
     }
   };
@@ -449,8 +443,8 @@ const Chat = () => {
 
       setIncomingCall(null);
       setIsVideoCallActive(true);
-    } catch (err) {
-      console.error('Error accepting call:', err);
+    } catch {
+      // Call acceptance error handled silently
     }
   };
 

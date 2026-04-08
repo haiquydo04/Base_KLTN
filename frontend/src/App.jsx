@@ -134,6 +134,22 @@ function App() {
             } 
           />
           <Route 
+            path="/profile/:userId" 
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <EditProfile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
             path="/video-chat" 
             element={
               <ProtectedRoute>

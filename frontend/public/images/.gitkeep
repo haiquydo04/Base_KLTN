@@ -1,0 +1,24 @@
+# Public Images Directory
+
+This directory contains all static images used in the frontend application.
+
+## Required Folder Structure
+
+```
+public/
+├── images/
+│   ├── LandingPage/
+│   │   ├── ChaEunWoo.png      # Hero image for landing page
+│   │   ├── AI.png             # AI feature illustration
+│   │   └── Couple.png          # Couple image for registration
+│   ├── Login/
+│   │   ├── login_1.jpg        # Login page avatar
+│   │   ├── login_2.jpg        # Login page avatar
+│   │   └── login_3.jpg        # Login page avatar
+│   ├── avatar-placeholder.png  # Default avatar
+│   └── logo.png               # Application logo
+```
+
+## Note
+
+Add your actual images to these folders before deployment.

@@ -14,7 +14,12 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const getApiUrl = () => {
+    if (import.meta.env.PROD) {
+      return import.meta.env.VITE_API_URL || '';
+    }
+    return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  };
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,30 +48,23 @@ const Login = () => {
       return;
     }
     try {
-      console.log('[Login] Attempting login...');
       const result = await login(formData);
-      console.log('[Login] Login result:', result);
-      console.log('[Login] User data:', result?.user);
-      console.log('[Login] Token:', result?.token ? 'Present' : 'Missing');
       
-      // Only navigate if login was successful
       if (result?.token && result?.user) {
-        console.log('[Login] Success! Navigating to /discover...');
         navigate('/discover');
-      } else {
-        console.log('[Login] No token received - check error state');
       }
     } catch (err) {
       // Error handled by store
-      console.log('[Login] Login failed:', err.response?.data?.message || err.message);
     }
   };
 
   const handleGoogleLogin = () => {
+    const API_URL = getApiUrl();
     window.location.href = `${API_URL}/api/auth/google`;
   };
 
   const handleFacebookLogin = () => {
+    const API_URL = getApiUrl();
     window.location.href = `${API_URL}/api/auth/facebook`;
   };
 

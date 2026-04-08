@@ -75,49 +75,30 @@ const Discover = () => {
   const [superAnimation, setSuperAnimation] = useState(false);
 
   const fetchProfiles = useCallback(async (forceRefresh = false) => {
-    console.log('[Discover] fetchProfiles called, forceRefresh:', forceRefresh);
     try {
       setLoading(true);
-      // Reset state TRƯỚC KHI gọi API
       setProfiles([]);
       setCurrentIndex(0);
 
       const res = await userService.getRecommendedUsers(forceRefresh);
-      console.log('[Discover] Raw API response:', res);
-      console.log('[Discover] Response structure:', {
-        hasUsers: Array.isArray(res?.users),
-        hasData: !!res?.data,
-        hasSuccess: 'success' in res,
-        keys: Object.keys(res || {})
-      });
 
-      // FIX: Handle multiple response formats from backend
       const newProfiles = res?.users || res?.data?.users || res?.data || [];
-      console.log('[Discover] Extracted profiles count:', newProfiles.length);
 
       if (!Array.isArray(newProfiles)) {
-        console.error('[Discover] Profiles is not an array:', typeof newProfiles);
         setProfiles([]);
       } else {
         setProfiles(newProfiles);
       }
 
-      if (newProfiles.length === 0) {
-        console.log('[Discover] No profiles returned - might be filtered out or no more users');
-      }
-
       setError('');
     } catch (err) {
-      console.error('[Discover] Error fetching profiles:', err);
       setError('Không thể tải hồ sơ. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // ✅ FIX: Fetch khi mount hoặc khi pathname thay đổi (quay lại trang)
   useEffect(() => {
-    console.log('[Discover] useEffect triggered, pathname:', location.pathname);
     fetchProfiles();
   }, [location.pathname, fetchProfiles]);
 
@@ -131,24 +112,18 @@ const Discover = () => {
     setActionLoading(true);
     try {
       const res = await matchService.likeUser(cp._id);
-      console.log('[Discover] Like response:', res);
       
-      // FIX: Navigate directly to chat when match
       const isMatch = res?.matched || res?.isMatch;
       const conversationId = res?.conversationId || res?.matchId;
       
       if (isMatch && conversationId) {
-        console.log('[Discover] Match! Navigating to /messages/:conversationId');
-        // Navigate directly to chat
         navigate(`/chat/${conversationId}`);
-        return; // Don't move to next profile
+        return;
       }
       
-      // Not a match, just like normally
       setCurrentIndex(i => i + 1);
     } catch (err) {
-      console.error('[Discover] Like error:', err);
-      setCurrentIndex(i => i + 1); // Still move to next on error
+      setCurrentIndex(i => i + 1);
     }
     finally { setActionLoading(false); }
   };
@@ -158,12 +133,10 @@ const Discover = () => {
     setPassFlash(true); setTimeout(() => setPassFlash(false), 420);
     setActionLoading(true);
     try {
-      const res = await matchService.passUser(cp._id);
-      console.log('[Discover] Pass response:', res);
+      await matchService.passUser(cp._id);
       setCurrentIndex(i => i + 1);
     } catch (err) {
-      console.error('[Discover] Pass error:', err);
-      setCurrentIndex(i => i + 1); // Still move to next on error
+      setCurrentIndex(i => i + 1);
     }
     finally { setActionLoading(false); }
   };
@@ -176,29 +149,23 @@ const Discover = () => {
     
     try {
       const res = await matchService.superLikeUser(cp._id);
-      console.log('[Discover] Super Like response:', res);
       
-      // Show animation for 2 seconds
       setTimeout(() => setSuperAnimation(false), 2000);
       
-      // Check if it's a Super Match
       if (res?.matched || res?.isSuperMatch) {
         const conversationId = res?.match?._id || res?.matchId;
-        console.log('[Discover] Super Match! Navigating to /chat/', conversationId);
         setTimeout(() => {
           if (conversationId) {
             navigate(`/chat/${conversationId}`);
           }
         }, 1500);
-        return; // Don't move to next profile
+        return;
       }
       
-      // Not a match, move to next profile after animation
       setTimeout(() => {
         setCurrentIndex(i => i + 1);
       }, 1500);
     } catch (err) {
-      console.error('[Discover] Super Like error:', err);
       setTimeout(() => setSuperAnimation(false), 2000);
       setTimeout(() => setCurrentIndex(i => i + 1), 1500);
     }

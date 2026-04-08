@@ -23,8 +23,6 @@ const NotificationBell = () => {
 
     // Handle new match notification
     const handleNewMatch = (data) => {
-      console.log('[NotificationBell] New match:', data);
-      
       // Ensure data is valid object
       if (!data || typeof data !== 'object') return;
       
@@ -50,8 +48,6 @@ const NotificationBell = () => {
 
     // Handle new like notification (non-mutual)
     const handleNewLike = (data) => {
-      console.log('[NotificationBell] New like:', data);
-      
       if (!data || typeof data !== 'object') return;
       
       const notification = {
@@ -72,8 +68,6 @@ const NotificationBell = () => {
 
     // Handle new message notification
     const handleNewMessage = (data) => {
-      console.log('[NotificationBell] New message:', data);
-      
       if (!data || typeof data !== 'object') return;
       
       // Don't show notification if message is from current user

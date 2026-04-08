@@ -45,7 +45,6 @@ const Discovery = () => {
       }
     } catch (err) {
       setError('Failed to load nearby users');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -60,7 +59,6 @@ const Discovery = () => {
 
       setUsers(response.data?.users || []);
     } catch (err) {
-      console.error('Error fetching nearby users:', err);
       throw err;
     }
   };

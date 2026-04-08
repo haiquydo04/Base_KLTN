@@ -38,7 +38,6 @@ export const useChatPagination = (matchId) => {
       }, 100);
       
     } catch (err) {
-      console.error('[useChatPagination] Error fetching:', err);
       setError('Failed to load messages');
     } finally {
       setLoading(false);
@@ -79,8 +78,8 @@ export const useChatPagination = (matchId) => {
       const pagination = response?.pagination || response?.data?.pagination || {};
       setHasMore(pagination.hasMore !== false && pagination.pages > nextPage);
       
-    } catch (err) {
-      console.error('[useChatPagination] Error loading more:', err);
+    } catch {
+      // Silent failure for pagination
     } finally {
       setLoadingMore(false);
     }
