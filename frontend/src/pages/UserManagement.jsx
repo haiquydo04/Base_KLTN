@@ -254,19 +254,23 @@ export default function UserManagement() {
                                     <tr><td colSpan="6" className="py-12 text-center text-gray-500">Đang tải dữ liệu...</td></tr>
                                 ) : (!users || users.length === 0) ? (
                                     <tr><td colSpan="6" className="py-12 text-center text-gray-500">Không tìm thấy người dùng nào.</td></tr>
-                                ) : users.map((user, idx) => (
-                                    <tr key={user._id} className="hover:bg-[#FCFAFA] transition-colors group">
+                                ) : users.map((user, idx) => {
+                                    const isBanned = user.isLocked || user.status === 'banned';
+                                    return (
+                                    <tr key={user._id} className={`hover:bg-[#FCFAFA] transition-colors group ${isBanned ? 'opacity-60 bg-gray-50/50' : ''}`}>
                                         <td className="py-5 pl-8">
                                             <div className="flex items-center gap-4">
-                                                {user.avatar ? (
-                                                    <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-100 flex-shrink-0">
-                                                        <img src={user.avatar} className="w-full h-full object-cover" alt="avatar" />
-                                                    </div>
-                                                ) : (
-                                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 ${getAvatarColor(idx)}`}>
-                                                        {getAvatarText(user.fullName || user.username)}
-                                                    </div>
-                                                )}
+                                                <div className="relative w-12 h-12 flex-shrink-0">
+                                                    {user.avatar ? (
+                                                        <div className="w-full h-full rounded-full overflow-hidden border border-gray-100">
+                                                            <img src={user.avatar} className="w-full h-full object-cover" alt="avatar" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className={`w-full h-full rounded-full flex items-center justify-center font-bold text-lg ${getAvatarColor(idx)}`}>
+                                                            {getAvatarText(user.fullName || user.username)}
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div className="truncate">
                                                     <div className="font-bold text-gray-900 text-[15px]">{user.fullName || user.username}</div>
                                                     <div className="text-[13px] text-gray-400 mt-0.5">@{user.username}</div>
@@ -283,7 +287,11 @@ export default function UserManagement() {
                                             {new Date(user.createdAt).toLocaleDateString('vi-VN')}
                                         </td>
                                         <td className="py-5 text-center">
-                                            <span className={`w-2.5 h-2.5 rounded-full inline-block ${!user.isLocked && user.status === 'active' ? 'bg-[#10B981]' : 'bg-[#EF4444]'}`}></span>
+                                            {isBanned ? (
+                                                <span className="px-3 py-1 bg-[#FFF0F3] text-[#E53258] border border-[#FFE1E8] rounded-full text-[10px] font-extrabold tracking-wider whitespace-nowrap">BỊ KHÓA</span>
+                                            ) : (
+                                                <span className="px-3 py-1 bg-[#E8FFF0] text-[#10B981] border border-[#A7F3D0] rounded-full text-[10px] font-extrabold tracking-wider whitespace-nowrap">HOẠT ĐỘNG</span>
+                                            )}
                                         </td>
                                         <td className="py-5 text-right pr-12">
                                             <div className="flex items-center justify-end gap-5">
@@ -302,7 +310,7 @@ export default function UserManagement() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                )})}
                             </tbody>
                         </table>
 

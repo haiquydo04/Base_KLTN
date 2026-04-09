@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminDashboardService, adminAuthService } from '../services/api';
-import { LineChart, Line, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../components/AdminLayout';
 
@@ -104,13 +104,17 @@ export default function Dashboard() {
             const lastDays = Array.from({length: daysRange}, (_, i) => {
               const d = new Date();
               d.setDate(d.getDate() - ((daysRange - 1) - i));
-              return d.toISOString().split('T')[0];
+              return { dateStr: d.toISOString().split('T')[0], localDate: d };
             });
 
-            const fullGrowthData = lastDays.map(date => {
-              const found = growthArr.find(item => item._id === date || item.date === date);
+            const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+            const fullGrowthData = lastDays.map(item => {
+              const { dateStr, localDate } = item;
+              const found = growthArr.find(v => v._id === dateStr || v.date === dateStr);
+              const dateLabel = daysRange === 7 ? dayNames[localDate.getDay()] : dateStr.substring(5);
               return {
-                date: date.substring(5), // Just MM-DD to look clean on x-axis
+                date: dateLabel,
                 users: found ? (found.count || found.users || 0) : 0
               };
             });
@@ -260,13 +264,23 @@ export default function Dashboard() {
               <div className="h-64 mt-4 w-full">
                 {growthData && growthData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={growthData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94A3B8' }} dy={10} />
+                    <BarChart data={growthData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }} maxBarSize={48}>
+                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748B', fontWeight: 600 }} dy={10} />
                       <RechartsTooltip 
+                        cursor={{ fill: 'transparent' }}
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       />
-                      <Line type="monotone" dataKey="users" stroke="#E53258" strokeWidth={3} dot={{ r: 4, fill: '#E53258', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-                    </LineChart>
+                      <Bar dataKey="users" radius={[24, 24, 0, 0]}>
+                        {growthData.map((entry, index) => {
+                           const maxUsers = Math.max(...growthData.map(d => d.users), 1);
+                           const ratio = entry.users / maxUsers;
+                           const shades = ['#FDE4ED', '#FBC7D5', '#F59EB5', '#EF7696', '#E53258'];
+                           const shadeIndex = Math.max(0, Math.min(Math.floor(ratio * (shades.length - 1)), shades.length - 1));
+                           const color = (entry.users === 0) ? shades[0] : shades[shadeIndex];
+                           return <Cell key={`cell-${index}`} fill={color} />;
+                        })}
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-2">
