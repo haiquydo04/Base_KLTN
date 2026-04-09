@@ -141,7 +141,7 @@ function Sidebar({ currentStep }) {
 /* ── Step 1 ───────────────────────────────────── */
 function Step1({ email, setEmail, onSendOTP, error, isLoading }) {
   return (
-    <div>
+    <div data-aos="fade-left" data-aos-duration="500">
       <div className="mb-5">
         <div className="inline-flex items-center gap-2 bg-primary-50 border border-primary-100 rounded-full px-3 py-1 mb-3">
           <span className="w-4 h-4 rounded-full bg-primary-500 text-white text-[9px] flex items-center justify-center font-bold">1</span>
@@ -187,7 +187,7 @@ function Step2({ otp, setOtp, onVerifyOTP, onPrev, onResend, error, isLoading })
   const filled = otp.every(d => d !== '');
 
   return (
-    <div>
+    <div data-aos="fade-left" data-aos-duration="500">
       <div className="mb-5">
         <div className="inline-flex items-center gap-2 bg-primary-50 border border-primary-100 rounded-full px-3 py-1 mb-3">
           <span className="w-4 h-4 rounded-full bg-primary-500 text-white text-[9px] flex items-center justify-center font-bold">2</span>
@@ -238,7 +238,7 @@ function Step3({ newPass, setNewPass, confirmPass, setConfirmPass, onResetPasswo
   const valid = newPass.length > 0 && newPass === confirmPass && !mismatch;
 
   return (
-    <div>
+    <div data-aos="fade-left" data-aos-duration="500">
       <div className="mb-5">
         <div className="inline-flex items-center gap-2 bg-primary-50 border border-primary-100 rounded-full px-3 py-1 mb-3">
           <span className="w-4 h-4 rounded-full bg-primary-500 text-white text-[9px] flex items-center justify-center font-bold">3</span>
@@ -273,7 +273,7 @@ function Step3({ newPass, setNewPass, confirmPass, setConfirmPass, onResetPasswo
 /* ── Step 4 ───────────────────────────────────── */
 function Step4() {
   return (
-    <div className="flex flex-col items-center justify-center text-center h-full py-6">
+    <div className="flex flex-col items-center justify-center text-center h-full py-6" data-aos="zoom-in" data-aos-duration="500">
       <div className="relative mb-5">
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-secondary-400 flex items-center justify-center shadow-lg">
           <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -385,8 +385,8 @@ export default function ForgotPassword() {
       <div className="pointer-events-none fixed -top-24 -left-24 w-72 h-72 rounded-full bg-primary-100/70 blur-3xl" />
       <div className="pointer-events-none fixed top-24 -right-24 w-80 h-80 rounded-full bg-secondary-100/60 blur-3xl" />
 
-      {/* Header — exact LandingPage header */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-md border-b border-primary-100 shadow-sm px-5 lg:px-10 py-4">
+      {/* Header — trượt từ trên xuống */}
+      <header className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-md border-b border-primary-100 shadow-sm px-5 lg:px-10 py-4" data-aos="fade-down" data-aos-duration="800">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link to="/" className="text-2xl font-extrabold text-primary-600 tracking-tight">LoveAI</Link>
           <Link to="/login" className="inline-flex items-center gap-1.5 px-4 h-8 rounded-full border border-primary-200 bg-primary-50 text-primary-600 text-xs font-bold hover:bg-primary-100 transition-colors">
@@ -397,7 +397,8 @@ export default function ForgotPassword() {
 
       {/* Content */}
       <div className="relative z-10 min-h-[100dvh] flex flex-col items-center justify-center px-4 pt-24 pb-12">
-        <div className="w-full max-w-2xl">
+        {/* Main Card — trượt từ dưới lên */}
+        <div className="w-full max-w-2xl" data-aos="fade-up" data-aos-duration="1000">
           <div className="bg-white/95 backdrop-blur border border-primary-100 rounded-[1.6rem] shadow-xl overflow-hidden flex" style={{ minHeight: 440 }}>
             <Sidebar currentStep={step} />
             <div className="flex-1 p-7 min-w-0">
@@ -408,8 +409,8 @@ export default function ForgotPassword() {
             </div>
           </div>
 
-          {/* Progress indicator */}
-          <div className="flex items-center justify-center gap-2 mt-4">
+          {/* Progress indicator — hiện lên sau card 1 chút */}
+          <div className="flex items-center justify-center gap-2 mt-4" data-aos="fade-up" data-aos-delay="400">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className={`rounded-full transition-all duration-300 ${i === step ? 'w-6 h-2 bg-primary-500'
                 : i < step ? 'w-2 h-2 bg-primary-400'
