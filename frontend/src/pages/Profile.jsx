@@ -4,9 +4,58 @@ import { useAuthStore } from '../store/authStore';
 import { userService, matchService } from '../services/api';
 import Navbar from '../components/Navbar';
 
+/**
+ * Helper: Format location for display
+ * Handles both string and GeoJSON object { type: 'Point', coordinates: [lng, lat] }
+ */
+const formatLocation = (location) => {
+  if (!location) return null;
+  
+  // If it's a string, return as-is
+  if (typeof location === 'string') {
+    return location.trim() || null;
+  }
+  
+  // If it's an object (GeoJSON format)
+  if (typeof location === 'object') {
+    // Handle locationText if available
+    if (location.locationText) return location.locationText;
+    
+    // Handle coordinates [lng, lat]
+    if (location.coordinates && Array.isArray(location.coordinates)) {
+      // Usually we don't want to show coordinates to users
+      // Return a formatted string or null
+      const [lng, lat] = location.coordinates;
+      // Don't expose raw coordinates - just return null or a placeholder
+      return null;
+    }
+  }
+  
+  return null;
+};
+
+/**
+ * Helper: Check if location is a non-empty string
+ */
+const hasLocation = (location) => {
+  if (!location) return false;
+  if (typeof location === 'string') return location.trim().length > 0;
+  if (typeof location === 'object') {
+    // Has locationText
+    if (location.locationText) return true;
+    // Has valid coordinates (not [0, 0])
+    if (location.coordinates && Array.isArray(location.coordinates)) {
+      const [lng, lat] = location.coordinates;
+      return lng !== 0 || lat !== 0;
+    }
+  }
+  return false;
+};
+
 const ProfileCompletionCard = ({ profile, onEditClick }) => {
   const missingFields = useMemo(() => {
     const missing = [];
+    
     if (!profile?.avatar || profile.avatar.trim() === '') {
       missing.push({ key: 'avatar', label: 'Add a profile photo', icon: '📷', points: 20 });
     }
@@ -16,7 +65,8 @@ const ProfileCompletionCard = ({ profile, onEditClick }) => {
     if (!profile?.age) {
       missing.push({ key: 'age', label: 'Add your age', icon: '🎂', points: 10 });
     }
-    if (!profile?.location || profile.location.trim() === '') {
+    // FIX: Use hasLocation helper for proper object/string check
+    if (!hasLocation(profile?.location) && !profile?.locationText) {
       missing.push({ key: 'location', label: 'Add your location', icon: '📍', points: 10 });
     }
     if (!profile?.interests || profile.interests.length < 3) {
@@ -109,7 +159,12 @@ const ProfileCompletionCard = ({ profile, onEditClick }) => {
 };
 
 const ProfileSection = ({ icon, title, value, editLink, missing }) => {
-  const isMissing = !value || (Array.isArray(value) && value.length === 0);
+  // FIX: Ensure value is not an object before rendering
+  const isValueObject = value !== null && typeof value === 'object' && !Array.isArray(value);
+  const isMissing = !value || isValueObject || (Array.isArray(value) && value.length === 0);
+
+  // If value is an object, treat as missing
+  const displayValue = isValueObject ? null : value;
 
   return (
     <div className={`p-4 rounded-2xl ${isMissing && missing ? 'bg-gray-800/50 border-2 border-dashed border-gray-700' : 'bg-gray-800'}`}>
@@ -122,10 +177,10 @@ const ProfileSection = ({ icon, title, value, editLink, missing }) => {
             <p className="text-gray-400 text-sm">{title}</p>
             {isMissing ? (
               <p className="text-gray-500 text-sm">{missing || 'Not added yet'}</p>
-            ) : Array.isArray(value) ? (
-              <p className="text-white font-medium">{value.length} added</p>
+            ) : Array.isArray(displayValue) ? (
+              <p className="text-white font-medium">{displayValue.length} added</p>
             ) : (
-              <p className="text-white font-medium">{value}</p>
+              <p className="text-white font-medium">{displayValue}</p>
             )}
           </div>
         </div>
@@ -162,7 +217,11 @@ const Profile = () => {
         setIsOwnProfile(!id || id === currentUser?._id);
 
         const data = await userService.getUserById(userId);
-        setProfile(data.user);
+        const profileData = data?.user || data?.data?.user || data;
+        if (!profileData?._id) {
+          throw new Error('Invalid profile data received');
+        }
+        setProfile(profileData);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load profile');
       } finally {
@@ -176,7 +235,7 @@ const Profile = () => {
   const handleLike = async () => {
     try {
       const data = await matchService.likeUser(profile._id);
-      if (data.isMatch) {
+      if (data.matched) {
         alert(`It's a match! You can now chat with ${profile.username}`);
       }
     } catch (err) {
@@ -205,6 +264,13 @@ const Profile = () => {
     );
   }
 
+  // FIX: Calculate display values safely
+  const displayLocation = formatLocation(profile?.location) || profile?.locationText || null;
+  const hasValidLocation = displayLocation !== null;
+  const displayAge = profile?.age ?? null;
+  const displayInterests = Array.isArray(profile?.interests) ? profile.interests : [];
+  const displayPhotos = Array.isArray(profile?.photos) ? profile.photos : [];
+
   return (
     <div className="min-h-screen bg-gray-900">
       <Navbar />
@@ -215,9 +281,9 @@ const Profile = () => {
           <div className="relative mb-6">
             {/* Cover / Background */}
             <div className="h-40 rounded-3xl bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-600 overflow-hidden">
-              {profile?.photos && profile.photos.length > 0 && (
+              {displayPhotos.length > 0 && (
                 <img
-                  src={profile.photos[0]}
+                  src={displayPhotos[0]}
                   alt="Cover"
                   className="w-full h-full object-cover opacity-50"
                 />
@@ -237,7 +303,7 @@ const Profile = () => {
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
                       <span className="text-5xl font-bold text-white">
-                        {profile?.username?.charAt(0).toUpperCase()}
+                        {profile?.username?.charAt(0)?.toUpperCase() || '?'}
                       </span>
                     </div>
                   )}
@@ -253,20 +319,22 @@ const Profile = () => {
           <div className="mt-20 text-center mb-6">
             <div className="flex items-center justify-center gap-2">
               <h1 className="text-3xl font-bold text-white">
-                {profile?.fullName || profile?.username}
+                {profile?.fullName || profile?.username || 'Unknown User'}
               </h1>
-              {profile?.age && (
-                <span className="text-2xl text-gray-400">, {profile.age}</span>
+              {displayAge && (
+                <span className="text-2xl text-gray-400">, {displayAge}</span>
               )}
             </div>
-            <p className="text-gray-400">@{profile?.username}</p>
-            {profile?.location && (
+            <p className="text-gray-400">@{profile?.username || 'unknown'}</p>
+            
+            {/* FIX: Use hasValidLocation and displayLocation for safe rendering */}
+            {hasValidLocation && (
               <div className="flex items-center justify-center gap-1 mt-1 text-gray-400">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span className="text-sm">{profile.location}</span>
+                <span className="text-sm">{displayLocation}</span>
               </div>
             )}
           </div>
@@ -291,7 +359,7 @@ const Profile = () => {
             <ProfileSection
               icon="✍️"
               title="About Me"
-              value={profile?.bio}
+              value={profile?.bio || null}
               editLink="/settings"
               missing="Write something about yourself"
             />
@@ -300,7 +368,7 @@ const Profile = () => {
             <ProfileSection
               icon="💼"
               title="Work & Education"
-              value={profile?.occupation || profile?.education}
+              value={profile?.occupation || profile?.education || null}
               editLink="/settings"
               missing="Add your work or education"
             />
@@ -309,7 +377,7 @@ const Profile = () => {
             <ProfileSection
               icon="🖼️"
               title="Photos"
-              value={profile?.photos}
+              value={displayPhotos.length > 0 ? displayPhotos : null}
               editLink="/settings"
               missing="Add at least 2 photos"
             />
@@ -318,7 +386,7 @@ const Profile = () => {
             <ProfileSection
               icon="❤️"
               title="Interests"
-              value={profile?.interests?.slice(0, 3)}
+              value={displayInterests.length > 0 ? displayInterests.slice(0, 3) : null}
               editLink="/settings"
               missing="Add your interests"
             />

@@ -54,19 +54,19 @@ router.get('/google/callback',
       };
       const message = errorMessages[req.query.error] || req.query.error_description || 'OAuth error';
       console.error('❌ Google OAuth error:', message);
-      return res.redirect(`${config.frontendUrl}/login?error=${encodeURIComponent(message)}`);
+      return res.redirect(`${config.frontendUrl}/#/login?error=${encodeURIComponent(message)}`);
     }
     next();
   },
   (req, res, next) => {
     passport.authenticate('google', {
-      failureRedirect: `${config.frontendUrl}/login?error=google_auth_failed`,
+      failureRedirect: `${config.frontendUrl}/#/login?error=google_auth_failed`,
       failureFlash: true,
       session: false
     })(req, res, (err) => {
       if (err) {
         console.error('❌ Passport authenticate error:', err.message);
-        return res.redirect(`${config.frontendUrl}/login?error=${encodeURIComponent(err.message)}`);
+        return res.redirect(`${config.frontendUrl}/#/login?error=${encodeURIComponent(err.message)}`);
       }
       next();
     });
@@ -77,16 +77,16 @@ router.get('/google/callback',
     
     if (!req.user) {
       console.error('❌ Google auth failed: No user in request');
-      return res.redirect(`${config.frontendUrl}/login?error=no_user`);
+      return res.redirect(`${config.frontendUrl}/#/login?error=no_user`);
     }
 
     try {
       const token = generateToken(req.user._id);
       console.log('   JWT token generated');
-      res.redirect(`${config.frontendUrl}/auth/callback?token=${token}&provider=google`);
+      res.redirect(`${config.frontendUrl}/#/auth/callback?token=${token}&provider=google`);
     } catch (error) {
       console.error('❌ Error generating token:', error.message);
-      res.redirect(`${config.frontendUrl}/login?error=token_generation_failed`);
+      res.redirect(`${config.frontendUrl}/#/login?error=token_generation_failed`);
     }
   }
 );
@@ -100,12 +100,12 @@ router.get('/facebook',
 
 router.get('/facebook/callback',
   passport.authenticate('facebook', {
-    failureRedirect: `${config.frontendUrl}/login?error=facebook_auth_failed`,
+    failureRedirect: `${config.frontendUrl}/#/login?error=facebook_auth_failed`,
     session: false
   }),
   (req, res) => {
     const token = generateToken(req.user._id);
-    res.redirect(`${config.frontendUrl}/auth/callback?token=${token}&provider=facebook`);
+    res.redirect(`${config.frontendUrl}/#/auth/callback?token=${token}&provider=facebook`);
   }
 );
 

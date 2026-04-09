@@ -35,7 +35,6 @@ export const useWebRTC = (socket) => {
       }
       return stream;
     } catch (err) {
-      console.error('Error accessing media devices:', err);
       setError('Could not access camera/microphone. Please check permissions.');
       return null;
     }
@@ -245,8 +244,8 @@ export const useWebRTC = (socket) => {
             pendingCandidates.current.push(data.signal);
           }
         }
-      } catch (err) {
-        console.error('Error handling WebRTC signal:', err);
+      } catch {
+        // Silent failure for WebRTC signal
       }
     });
 

@@ -49,7 +49,6 @@ const RandomVideoChat = () => {
       }
       return stream;
     } catch (err) {
-      console.error('Error accessing media devices:', err);
       setError('Could not access camera/microphone. Please check permissions.');
       return null;
     }
@@ -77,7 +76,6 @@ const RandomVideoChat = () => {
 
   const createPeerConnection = (partnerId) => {
     if (!localStream.current) {
-      console.error('localStream not available');
       return null;
     }
 
@@ -214,8 +212,8 @@ const RandomVideoChat = () => {
             pendingCandidates.current.push(data.signal);
           }
         }
-      } catch (err) {
-        console.error('Error handling WebRTC signal:', err);
+      } catch {
+        // Silent failure for WebRTC signal
       }
     });
 

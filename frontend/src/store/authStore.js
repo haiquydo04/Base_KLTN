@@ -1,13 +1,41 @@
 import { create } from 'zustand';
 import { authService } from '../services/api';
 
+// Safe localStorage parser with error handling
+const getStoredUser = () => {
+  try {
+    const stored = localStorage.getItem('user');
+    if (!stored) return null;
+    return JSON.parse(stored);
+  } catch {
+    // Invalid JSON in localStorage - clear it to prevent crashes
+    localStorage.removeItem('user');
+    return null;
+  }
+};
+
+const getStoredToken = () => {
+  try {
+    return localStorage.getItem('token') || null;
+  } catch {
+    return null;
+  }
+};
+
 export const useAuthStore = create((set, get) => ({
-  user: JSON.parse(localStorage.getItem('user')) || null,
-  token: localStorage.getItem('token') || null,
+  user: getStoredUser(),
+  token: getStoredToken(),
   isLoading: false,
   error: null,
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+    set({ user });
+  },
   
   setToken: (token) => {
     if (token) {
@@ -29,6 +57,13 @@ export const useAuthStore = create((set, get) => ({
         throw new Error(banMsg);
       }
 
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      
       set({ user: data.user, token: data.token, isLoading: false });
       return data;
     } catch (error) {
@@ -47,6 +82,15 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await authService.register(userData);
+      
+      // Ensure user and token are set
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      
       set({ user: data.user, token: data.token, isLoading: false });
       return data;
     } catch (error) {
@@ -62,8 +106,8 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       await authService.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
+      // Ignore logout errors
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
@@ -75,7 +119,6 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const data = await authService.getCurrentUser();
-      
       if (data.user?.isLocked || data.user?.status === 'banned') {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -83,8 +126,10 @@ export const useAuthStore = create((set, get) => ({
         throw new Error('Tài khoản của bạn đã bị khóa bởi Quản trị viên.');
       }
 
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
       set({ user: data.user, isLoading: false });
-      localStorage.setItem('user', JSON.stringify(data.user));
       return data;
     } catch (error) {
       set({ isLoading: false });

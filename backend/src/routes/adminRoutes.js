@@ -1,6 +1,7 @@
 import express from 'express';
-import { adminLogin } from '../controllers/admin/adminAuth.controller.js';
+import { adminLogin, adminLogout, adminForgotPassword, adminVerifyOTP, adminResetPassword } from '../controllers/admin/adminAuth.controller.js';
 import { getUsers, toggleUserStatus, updateUserRole } from '../controllers/admin/adminUserController.js';
+import { getCurrentUser } from '../controllers/auth/me.controller.js';
 import { authenticate, authorizeAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -9,16 +10,19 @@ const router = express.Router();
 // Mục đích: Xác thực Admin
 router.post('/login', adminLogin);
 
+// Route: POST /api/admin/logout
+// Mục đích: Đăng xuất Admin (có ghi log)
+router.post('/logout', authenticate, authorizeAdmin, adminLogout);
+
+// --- Quên mật khẩu Admin (có ghi log) ---
+router.post('/forgot-password', adminForgotPassword);
+router.post('/verify-otp', adminVerifyOTP);
+router.post('/reset-password', adminResetPassword);
+
 // Route: GET /api/admin/me
 // Mục đích: Kiểm tra session và trả về thông tin Admin
 // Yêu cầu: Header Authorization: Bearer <token>
-router.get('/me', authenticate, authorizeAdmin, (req, res) => {
-  const { _id, username, email, fullName, role, avatar, status, lastLogin } = req.user;
-  res.json({
-    success: true,
-    user: { _id, username, email, fullName, role, avatar, status, lastLogin }
-  });
-});
+router.get('/me', authenticate, authorizeAdmin, getCurrentUser);
 
 // Route: GET /api/admin/users
 // Mục đích: Lấy danh sách tài khoản người dùng

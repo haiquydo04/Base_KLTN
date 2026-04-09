@@ -13,10 +13,10 @@ import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
-import Matches from './pages/Matches';
 import Messages from './pages/Messages';
 import Chat from './pages/Chat';
 import Discover from './pages/Discover';
+import Matches from './pages/Matches';
 import RandomVideoChat from './pages/RandomVideoChat';
 import Safety from './pages/Safety';
 import AuthCallback from './pages/AuthCallback';
@@ -183,10 +183,10 @@ function App() {
               } 
             />
             <Route 
-              path="/safety" 
+              path="/profile/:userId" 
               element={
                 <ProtectedRoute>
-                  <Safety />
+                  <Profile />
                 </ProtectedRoute>
               } 
             />
@@ -195,6 +195,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <EditProfile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <EditProfile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/safety" 
+              element={
+                <ProtectedRoute>
+                  <Safety />
                 </ProtectedRoute>
               } 
             />
@@ -208,7 +224,11 @@ function App() {
             />
             <Route 
               path="/" 
-              element={<LandingPage />} 
+              element={
+                <PublicRoute>
+                  <LandingPage />
+                </PublicRoute>
+              } 
             />
             <Route 
               path="/auth/callback" 

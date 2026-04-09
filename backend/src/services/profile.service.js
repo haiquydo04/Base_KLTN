@@ -24,30 +24,51 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 /**
- * Parse location string to coordinates
- * Format: "lat,lng" or JSON string
+ * Parse location to coordinates
+ * Supports:
+ * - GeoJSON format: { type: 'Point', coordinates: [lng, lat] }
+ * - JSON string: '{"lat": 10.5, "lng": 105.6}'
+ * - Comma-separated: "10.5,105.6"
  */
-const parseLocation = (locationStr) => {
-  if (!locationStr) return null;
-  
+const parseLocation = (location) => {
+  if (!location) return null;
+
   try {
+    // GeoJSON format (our current schema)
+    if (location.type === 'Point' && Array.isArray(location.coordinates)) {
+      return {
+        lat: location.coordinates[1], // GeoJSON: [lng, lat]
+        lng: location.coordinates[0]
+      };
+    }
+
+    // Handle string input
+    const locationStr = typeof location === 'string' ? location : JSON.stringify(location);
+
     // Try JSON format
     const parsed = JSON.parse(locationStr);
     if (parsed.lat && parsed.lng) {
       return { lat: parsed.lat, lng: parsed.lng };
     }
+    if (parsed.latitude && parsed.longitude) {
+      return { lat: parsed.latitude, lng: parsed.longitude };
+    }
   } catch {
     // Try comma-separated format
-    const parts = locationStr.split(',');
-    if (parts.length === 2) {
-      const lat = parseFloat(parts[0].trim());
-      const lng = parseFloat(parts[1].trim());
-      if (!isNaN(lat) && !isNaN(lng)) {
-        return { lat, lng };
+    try {
+      const parts = locationStr.split(',');
+      if (parts.length === 2) {
+        const lat = parseFloat(parts[0].trim());
+        const lng = parseFloat(parts[1].trim());
+        if (!isNaN(lat) && !isNaN(lng)) {
+          return { lat, lng };
+        }
       }
+    } catch {
+      // Ignore parse errors
     }
   }
-  
+
   return null;
 };
 

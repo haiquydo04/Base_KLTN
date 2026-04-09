@@ -4,6 +4,25 @@ import { useAuthStore } from '../store/authStore';
 import { userService, matchService } from '../services/api';
 import Navbar from '../components/Navbar';
 
+/* ─── Helper: Format location for display ─── */
+const formatLocation = (location) => {
+  if (!location) return null;
+  
+  // If it's a string, return as-is
+  if (typeof location === 'string') {
+    return location.trim() || null;
+  }
+  
+  // If it's an object (GeoJSON format)
+  if (typeof location === 'object') {
+    // Handle locationText if available
+    if (location.locationText) return location.locationText;
+    // Don't expose raw coordinates to users
+  }
+  
+  return null;
+};
+
 /* ─── AI Score Ring ─── */
 const AIScoreRing = ({ score = 85 }) => {
   const r = 20, circ = 2 * Math.PI * r;
@@ -49,41 +68,37 @@ const Discover = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
-  const [matchNotification, setMatchNotification] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [likeFlash, setLikeFlash] = useState(false);
   const [passFlash, setPassFlash] = useState(false);
+  const [superFlash, setSuperFlash] = useState(false);
+  const [superAnimation, setSuperAnimation] = useState(false);
 
   const fetchProfiles = useCallback(async (forceRefresh = false) => {
-    console.log('[Discover] fetchProfiles called, forceRefresh:', forceRefresh);
     try {
       setLoading(true);
-      // Reset state TRƯỚC KHI gọi API
       setProfiles([]);
       setCurrentIndex(0);
 
       const res = await userService.getRecommendedUsers(forceRefresh);
-      console.log('[Discover] API response:', res);
 
-      const newProfiles = res.users || [];
-      setProfiles(newProfiles);
+      const newProfiles = res?.users || res?.data?.users || res?.data || [];
 
-      if (newProfiles.length === 0) {
-        console.log('[Discover] No profiles returned - might be filtered out or no more users');
+      if (!Array.isArray(newProfiles)) {
+        setProfiles([]);
+      } else {
+        setProfiles(newProfiles);
       }
 
       setError('');
     } catch (err) {
-      console.error('[Discover] Error fetching profiles:', err);
       setError('Không thể tải hồ sơ. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // ✅ FIX: Fetch khi mount hoặc khi pathname thay đổi (quay lại trang)
   useEffect(() => {
-    console.log('[Discover] useEffect triggered, pathname:', location.pathname);
     fetchProfiles();
   }, [location.pathname, fetchProfiles]);
 
@@ -97,9 +112,19 @@ const Discover = () => {
     setActionLoading(true);
     try {
       const res = await matchService.likeUser(cp._id);
-      if (res.isMatch || res.matched) setMatchNotification({ matchedUser: cp });
+      
+      const isMatch = res?.matched || res?.isMatch;
+      const conversationId = res?.conversationId || res?.matchId;
+      
+      if (isMatch && conversationId) {
+        navigate(`/chat/${conversationId}`);
+        return;
+      }
+      
       setCurrentIndex(i => i + 1);
-    } catch { /* ignore */ }
+    } catch (err) {
+      setCurrentIndex(i => i + 1);
+    }
     finally { setActionLoading(false); }
   };
 
@@ -110,8 +135,44 @@ const Discover = () => {
     try {
       await matchService.passUser(cp._id);
       setCurrentIndex(i => i + 1);
-    } catch { /* ignore */ }
+    } catch (err) {
+      setCurrentIndex(i => i + 1);
+    }
     finally { setActionLoading(false); }
+  };
+
+  const handleSuperLike = async () => {
+    if (actionLoading || !cp) return;
+    setSuperFlash(true);
+    setSuperAnimation(true);
+    setActionLoading(true);
+    
+    try {
+      const res = await matchService.superLikeUser(cp._id);
+      
+      setTimeout(() => setSuperAnimation(false), 2000);
+      
+      if (res?.matched || res?.isSuperMatch) {
+        const conversationId = res?.match?._id || res?.matchId;
+        setTimeout(() => {
+          if (conversationId) {
+            navigate(`/chat/${conversationId}`);
+          }
+        }, 1500);
+        return;
+      }
+      
+      setTimeout(() => {
+        setCurrentIndex(i => i + 1);
+      }, 1500);
+    } catch (err) {
+      setTimeout(() => setSuperAnimation(false), 2000);
+      setTimeout(() => setCurrentIndex(i => i + 1), 1500);
+    }
+    finally {
+      setActionLoading(false);
+      setTimeout(() => setSuperFlash(false), 420);
+    }
   };
 
   const getPhotos = (p) => {
@@ -168,9 +229,9 @@ const Discover = () => {
               style={{ background: 'linear-gradient(135deg,#fb7185,#f43f5e)', color: '#fff', borderRadius: 24, padding: '8px 20px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(244,63,94,0.3)' }}>
               Tải lại
             </button>
-            <Link to="/matches"
+            <Link to="/messages"
               style={{ background: '#fff0f6', color: '#f43f5e', borderRadius: 24, padding: '8px 20px', fontSize: 12, fontWeight: 600, border: '1px solid #fce7f3', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
-              Xem kết nối
+              Tin nhắn
             </Link>
           </div>
         </div>
@@ -261,7 +322,7 @@ const Discover = () => {
                         <svg width="11" height="11" fill="#fb7185" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                         </svg>
-                        {cp.location ? `Cách bạn 2km` : 'Cách bạn 2km'}
+                        Cách bạn 2km
                       </span>
                     </div>
                   </div>
@@ -401,19 +462,23 @@ const Discover = () => {
 
                   {/* SUPER LIKE */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                    <button disabled={actionLoading}
+                    <button 
+                      onClick={handleSuperLike}
+                      disabled={actionLoading}
                       style={{
-                        width: 46, height: 46, borderRadius: '50%', border: '2px solid #fcd34d',
-                        background: '#fff',
-                        boxShadow: '0 3px 12px rgba(251,191,36,0.22)',
+                        width: 46, height: 46, borderRadius: '50%', border: '2px solid',
+                        borderColor: superFlash ? '#fbbf24' : '#fcd34d',
+                        background: superFlash ? 'linear-gradient(135deg,#fef9c3,#fde68a)' : '#fff',
+                        boxShadow: superFlash ? '0 6px 18px rgba(251,191,36,0.45)' : '0 3px 12px rgba(251,191,36,0.22)',
                         cursor: actionLoading ? 'not-allowed' : 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all .2s', opacity: actionLoading ? 0.4 : 1
+                        transition: 'all .2s', opacity: actionLoading ? 0.4 : 1,
+                        transform: superFlash ? 'scale(1.15)' : 'scale(1)'
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.background = 'linear-gradient(135deg,#fef9c3,#fde68a)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(251,191,36,0.45)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 3px 12px rgba(251,191,36,0.22)'; }}
+                      onMouseEnter={e => { if (!superFlash && !actionLoading) { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.background = 'linear-gradient(135deg,#fef9c3,#fde68a)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(251,191,36,0.45)'; } }}
+                      onMouseLeave={e => { if (!superFlash) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 3px 12px rgba(251,191,36,0.22)'; } }}
                     >
-                      <svg width="18" height="18" fill="#fbbf24" viewBox="0 0 24 24">
+                      <svg width="18" height="18" fill={superFlash ? '#f59e0b' : '#fbbf24'} viewBox="0 0 24 24">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                       </svg>
                     </button>
@@ -471,7 +536,7 @@ const Discover = () => {
                       <svg width="10" height="10" fill="#f43f5e" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                       </svg>
-                      {cp.location ? `Cách bạn 2km (${cp.location})` : 'Cách bạn 2km (Quận 1)'}
+                      Cách bạn 2km (Quận 1)
                     </span>
                   </div>
                 </div>
@@ -515,54 +580,63 @@ const Discover = () => {
         </div>{/* end max-w container */}
       </div>{/* end scroll area */}
 
-      {/* ══ MATCH MODAL ══ */}
-      {matchNotification && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
-          <div style={{
-            background: '#fff', borderRadius: 28, padding: '32px 28px', maxWidth: 320, width: '100%', textAlign: 'center',
-            boxShadow: '0 20px 60px rgba(244,63,94,0.2)', position: 'relative', overflow: 'hidden',
-            animation: 'popIn .38s cubic-bezier(.34,1.56,.64,1) both'
-          }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,rgba(251,113,133,0.06),rgba(216,180,254,0.08))', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative' }}>
-              <div style={{ fontSize: 48, marginBottom: 8 }}>💕</div>
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: '0 0 6px' }}>Kết đôi!</h2>
-              <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 20 }}>
-                Bạn và <strong style={{ color: '#374151' }}>{matchNotification.matchedUser?.fullName || matchNotification.matchedUser?.username}</strong> đã thích nhau!
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
-                {[user, matchNotification.matchedUser].map((u, i) => (
-                  <div key={i} style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', boxShadow: `0 0 0 3px ${i === 0 ? '#fb7185' : '#c4b5fd'}, 0 0 0 5px #fff` }}>
-                    {u?.avatar
-                      ? <img src={u.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 20, background: i === 0 ? 'linear-gradient(135deg,#fb7185,#f43f5e)' : 'linear-gradient(135deg,#c4b5fd,#8b5cf6)' }}>
-                        {(u?.fullName || u?.username)?.charAt(0).toUpperCase()}
-                      </div>
-                    }
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button
-                  onClick={() => { setMatchNotification(null); navigate('/matches'); }}
-                  style={{ width: '100%', padding: '12px 0', background: 'linear-gradient(135deg,#fb7185,#f43f5e)', color: '#fff', borderRadius: 28, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', boxShadow: '0 6px 18px rgba(244,63,94,0.35)' }}>
-                  ❤️ Nhắn tin ngay
-                </button>
-                <button
-                  onClick={() => setMatchNotification(null)}
-                  style={{ background: 'none', border: 'none', color: '#d1d5db', fontSize: 12, cursor: 'pointer', padding: '6px 0' }}>
-                  Tiếp tục khám phá
-                </button>
-              </div>
+      {/* Super Like Animation Overlay */}
+      {superAnimation && (
+        <div 
+          style={{
+            position: 'fixed', 
+            inset: 0, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.7)',
+            zIndex: 1000,
+            animation: 'fadeIn 0.3s ease-out'
+          }}
+        >
+          <div 
+            style={{
+              textAlign: 'center',
+              animation: 'superLikePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+            }}
+          >
+            <div style={{ fontSize: 80, marginBottom: 16 }}>
+              ⭐
             </div>
+            <h2 style={{ 
+              fontSize: 28, 
+              fontWeight: 800, 
+              color: '#fff',
+              textShadow: '0 0 30px rgba(251,191,36,0.8)',
+              marginBottom: 8
+            }}>
+              SUPER LIKE!
+            </h2>
+            <p style={{ 
+              fontSize: 14, 
+              color: '#fbbf24',
+              fontWeight: 500
+            }}>
+              Bạn đã gửi Super Like cho {cp?.fullName || cp?.username}
+            </p>
           </div>
         </div>
       )}
 
+      {/* CSS Animations */}
       <style>{`
-        @keyframes popIn {
-          from { opacity:0; transform:scale(0.72); }
-          to   { opacity:1; transform:scale(1); }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes superLikePop {
+          0% { transform: scale(0.5); opacity: 0; }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes starBurst {
+          0% { transform: scale(0) rotate(0deg); opacity: 1; }
+          100% { transform: scale(1.5) rotate(180deg); opacity: 0; }
         }
       `}</style>
     </div>

@@ -278,31 +278,42 @@ export const getRecommendedUsers = async (userId, options = {}) => {
   const page = Math.max(1, parseInt(options.page) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(options.limit) || 20));
   const skip = (page - 1) * limit;
+  const shouldRefresh = options.refresh === true;
 
   // ============================================
-  // 🐛 FIX: Query swipe và match
+  // 🐛 FIX: Query swipe và match - Extract ObjectIds properly
   // ============================================
-  const [swipedByMe, myMatches, totalUsers] = await Promise.all([
-    Swipe.find({ swiperId: userId }).select('swipedId'),
-    Match.findUserMatches(userId),
-    User.countDocuments({}) // Count ALL users
-  ]);
+  const swipedByMe = await Swipe.find({ swiperId: userId }).select('swipedId');
+  // FIX: Ensure swipedId is always an ObjectId string, not a populated object
+  const swipedUserIds = swipedByMe.map(s => {
+    const id = s.swipedId;
+    // If it's a populated object, extract _id
+    return typeof id === 'object' && id._id ? id._id.toString() : id?.toString();
+  }).filter(id => id);
 
-  let excludeIds;
-  if (refresh) {
-    // Nếu refresh, chỉ loại bỏ bản thân và những người đã match
-    excludeIds = [...new Set([
-      userId.toString(),
-      ...matchedUserIds.map(id => id?.toString()).filter(Boolean)
-    ])];
+  // FIX: Use non-populated version for internal ID extraction
+  const myMatches = await Match.findUserMatchesRaw(userId);
+  // FIX: Extract ObjectId from potentially populated match fields
+  const matchedUserIds = myMatches.map(m => {
+    const user1Id = typeof m.user1Id === 'object' && m.user1Id?._id ? m.user1Id._id : m.user1Id;
+    const user2Id = typeof m.user2Id === 'object' && m.user2Id?._id ? m.user2Id._id : m.user2Id;
+    const isUser1 = user1Id?.toString() === userId.toString();
+    const otherId = isUser1 ? user2Id : user1Id;
+    return otherId?.toString();
+  }).filter(id => id);
+
+  // Build exclude IDs array - ensure all are valid ObjectId strings
+  const excludeIdsSet = new Set();
+  excludeIdsSet.add(userId.toString());
+  
+  if (shouldRefresh) {
+    matchedUserIds.forEach(id => { if (id) excludeIdsSet.add(id); });
   } else {
-    // Bình thường: loại bỏ người đã swipe và đã match
-    excludeIds = [...new Set([
-      userId.toString(),
-      ...swipedUserIds.map(id => id.toString()),
-      ...matchedUserIds.map(id => id?.toString()).filter(Boolean)
-    ])];
+    swipedUserIds.forEach(id => { if (id) excludeIdsSet.add(id); });
+    matchedUserIds.forEach(id => { if (id) excludeIdsSet.add(id); });
   }
+  
+  const excludeIds = Array.from(excludeIdsSet);
 
   // Build query
   const query = buildUserQuery(currentUser, excludeIds);

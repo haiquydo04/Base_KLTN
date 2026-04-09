@@ -17,7 +17,12 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const getApiUrl = () => {
+    if (import.meta.env.PROD) {
+      return import.meta.env.VITE_API_URL || '';
+    }
+    return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  };
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,20 +66,29 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
+    const API_URL = getApiUrl();
     window.location.href = `${API_URL}/api/auth/google`;
   };
 
   const handleFacebookLogin = () => {
+    const API_URL = getApiUrl();
     window.location.href = `${API_URL}/api/auth/facebook`;
   };
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-primary-50">
-      <div className="hidden lg:block absolute top-0 right-0 w-1/2 h-full bg-primary-100/60" />
+      {/* Background shape */}
+      <div 
+        className="hidden lg:block absolute top-0 right-0 w-1/2 h-full bg-primary-100/60" 
+        data-aos="fade-left" 
+        data-aos-duration="1500"
+      />
 
       <div className="relative min-h-screen px-5 lg:px-8 py-5">
         <div className="max-w-7xl mx-auto min-h-[calc(100vh-4rem)] flex flex-col">
-          <header className="flex items-start justify-between">
+          
+          {/* Header */}
+          <header className="flex items-start justify-between" data-aos="fade-down" data-aos-duration="800">
             <div>
               <Link to="/" className="text-3xl font-black text-primary-600 tracking-tight">
                 LoveAI
@@ -84,17 +98,34 @@ const Login = () => {
           </header>
 
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 items-center py-4 lg:py-2 -mt-6 lg:-mt-16">
+            
+            {/* Left Column: Text & Avatars */}
             <section>
-              <h1 className="text-4xl sm:text-5xl font-black text-gray-900 leading-[0.98] max-w-lg">
+              <h1 
+                className="text-4xl sm:text-5xl font-black text-gray-900 leading-[0.98] max-w-lg"
+                data-aos="fade-right" 
+                data-aos-duration="1000"
+              >
                 Chào mừng bạn
                 <span className="block">quay lại với </span>
                 <span className="text-primary-600">LoveAI</span>
               </h1>
-              <p className="mt-4 text-lg text-gray-600 max-w-lg leading-relaxed">
+              
+              <p 
+                className="mt-4 text-lg text-gray-600 max-w-lg leading-relaxed"
+                data-aos="fade-right" 
+                data-aos-duration="1000" 
+                data-aos-delay="100"
+              >
                 Nơi tình yêu được kết nối bởi sự thấu hiểu của trí tuệ nhân tạo và sự tinh tế của cảm xúc.
               </p>
 
-              <div className="mt-7 flex items-center gap-3">
+              <div 
+                className="mt-7 flex items-center gap-3"
+                data-aos="fade-right" 
+                data-aos-duration="1000" 
+                data-aos-delay="200"
+              >
                 <div className="flex -space-x-3">
                   <img
                     src="/images/Login/login_1.jpg"
@@ -116,8 +147,14 @@ const Login = () => {
               </div>
             </section>
 
+            {/* Right Column: Login Form */}
             <section className="w-full max-w-[32rem] mx-auto lg:mx-0 lg:ml-auto lg:mr-8 px-3 sm:px-4">
-              <div className="bg-white rounded-[2rem] shadow-xl border border-primary-100 p-6 sm:p-6">
+              <div 
+                className="bg-white rounded-[2rem] shadow-xl border border-primary-100 p-6 sm:p-6" 
+                data-aos="fade-left" 
+                data-aos-duration="1000" 
+                data-aos-delay="300"
+              >
                 <Link
                   to="/"
                   className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full border border-primary-100 bg-primary-50 text-primary-600 text-xs font-semibold hover:bg-primary-100 transition-colors"
@@ -256,13 +293,20 @@ const Login = () => {
             </section>
           </div>
 
-          <footer className="pt-0 -mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400">
+          {/* Footer */}
+          <footer 
+            className="pt-0 -mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400"
+            data-aos="fade-up" 
+            data-aos-duration="800" 
+            data-aos-delay="400"
+          >
             <div className="flex items-center gap-6 uppercase tracking-wide font-semibold">
               <button type="button" className="hover:text-gray-600">Điều khoản</button>
               <button type="button" className="hover:text-gray-600">Bảo mật</button>
               <button type="button" className="hover:text-gray-600">Trợ giúp</button>
             </div>
           </footer>
+          
         </div>
       </div>
     </div>

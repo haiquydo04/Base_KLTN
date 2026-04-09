@@ -57,14 +57,15 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/users', userRoutes);
+// Mount interest routes BEFORE userRoutes to avoid /:id conflict
+app.use('/api', interestRoutes); // PB07: /api/tags, /api/users/interests
+app.use('/api', safetyRoutes); // /api/report, /api/block
+app.use('/api', discoveryRoutes); // /api/discovery, /api/update-location
+app.use('/api/users', userRoutes); // Must be after interestRoutes to avoid /users/interests being caught by /:id
 app.use('/api/match', matchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/v1/profiles', profileRoutes);
 app.use('/api/profile', userProfileRoutes);
-app.use('/api', discoveryRoutes);
-app.use('/api', interestRoutes); // PB07: Quản lý sở thích cá nhân
-app.use('/api', safetyRoutes); // Report và Block APIs
 
 app.use(notFound);
 app.use(errorHandler);
