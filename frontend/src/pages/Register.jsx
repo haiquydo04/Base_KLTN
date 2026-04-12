@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
+
 const EyeOpen = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
 const EyeOff = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>;
+
 
 const Register = () => {
   const navigate = useNavigate();
@@ -13,6 +15,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+
   const getApiUrl = () => {
     if (import.meta.env.PROD) {
       return import.meta.env.VITE_API_URL || '';
@@ -20,12 +23,14 @@ const Register = () => {
     return import.meta.env.VITE_API_URL || 'http://localhost:5000';
   };
 
+
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
     setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
     if (error) clearError();
     if (validationError) setValidationError('');
   };
+
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -38,28 +43,12 @@ const Register = () => {
     try { const r = await register(formData); if (r) navigate('/onboarding'); } catch (_) { }
   };
 
-  const handleGoogleRegister = () => {
-    const API_URL = getApiUrl();
-    if (!API_URL) {
-      alert('Vui lòng cấu hình VITE_API_URL để sử dụng đăng ký Google');
-      return;
-    }
-    window.location.href = `${API_URL}/api/auth/google`;
-  };
-
-  const handleFacebookRegister = () => {
-    const API_URL = getApiUrl();
-    if (!API_URL) {
-      alert('Vui lòng cấu hình VITE_API_URL để sử dụng đăng ký Facebook');
-      return;
-    }
-    window.location.href = `${API_URL}/api/auth/facebook`;
-  };
 
   /* ── Shared field styles ── */
-  const inputCls = 'w-full h-10 rounded-full border border-gray-200 bg-gray-50/50 pl-10 pr-4 text-[13px] text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-2 focus:ring-primary-300 focus:bg-white focus:border-transparent transition-all';
-  const labelCls = 'block text-[12px] font-bold text-gray-700 mb-1.5 ml-1';
+  const inputCls = 'w-full h-11 rounded-full border border-gray-200 bg-gray-50/50 pl-10 pr-4 text-[13px] text-gray-900 placeholder-gray-400 font-medium focus:outline-none focus:ring-2 focus:ring-primary-300 focus:bg-white focus:border-transparent transition-all';
+  const labelCls = 'block text-[11px] uppercase tracking-wide font-bold text-gray-500 mb-1.5 ml-1';
   const iconWrap = 'absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none transition-colors';
+
 
   const UserIcon = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
   const MailIcon = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
@@ -70,50 +59,57 @@ const Register = () => {
     </svg>
   );
 
+
   return (
     <div className="min-h-screen w-full bg-white bg-gradient-to-br from-primary-50 via-white to-secondary-50 relative">
       {/* Blobs */}
       <div className="pointer-events-none fixed -top-24 -left-24 w-72 h-72 rounded-full bg-primary-100/70 blur-3xl z-0" />
       <div className="pointer-events-none fixed top-24 -right-24 w-80 h-80 rounded-full bg-secondary-100/60 blur-3xl z-0" />
 
+
       {/* Header - Trượt từ trên xuống */}
-      <header className="absolute top-0 left-0 w-full z-50 px-5 lg:px-10 py-5" data-aos="fade-down" data-aos-duration="800">
+      <header className="absolute top-0 left-0 w-full z-50 px-4 sm:px-6 lg:px-10 py-4 sm:py-5" data-aos="fade-down" data-aos-duration="800">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link to="/" className="text-2xl font-black text-primary-600 tracking-tight">LoveAI</Link>
-          <p className="text-sm font-semibold text-gray-600 bg-white/60 backdrop-blur-md px-4 py-1.5 rounded-full shadow-sm border border-white/50">
+          <Link to="/" className="text-xl sm:text-2xl font-black text-primary-600 tracking-tight">LoveAI</Link>
+          <p className="text-[11px] sm:text-sm font-semibold text-gray-600 bg-white/60 backdrop-blur-md px-3 sm:px-4 py-1.5 rounded-full shadow-sm border border-white/50">
             Đã có tài khoản?{' '}
             <Link to="/login" className="text-primary-600 font-bold hover:text-primary-700 transition-colors">Đăng nhập</Link>
           </p>
         </div>
       </header>
 
-      {/* ── Main — Unified Card Frame ── */}
-      <main className="relative z-10 min-h-screen flex flex-col px-4 lg:px-8 pt-28 pb-12 lg:py-20">
-        {/* Card Lớn - Trượt từ dưới lên ôm trọn khối */}
-        <div className="w-full max-w-[960px] m-auto bg-white rounded-[2rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col lg:flex-row items-stretch" data-aos="fade-up" data-aos-duration="1000">
 
-          {/* ═══ LEFT ═══ */}
-          <div className="lg:w-[45%] p-6 lg:p-8 bg-gradient-to-b from-primary-50/50 to-white flex flex-col relative z-10 border-b lg:border-b-0 lg:border-r border-gray-100">
-            
-            {/* Back - Trượt ngang */}
+      {/* ── Main — Unified Card Frame ── */}
+      <main className="relative z-10 min-h-screen flex flex-col justify-center px-3 sm:px-6 lg:px-8 pt-24 pb-8 lg:py-20">
+        {/* Card Lớn */}
+        <div className="w-full max-w-[960px] mx-auto bg-white rounded-[2rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col lg:flex-row items-stretch" data-aos="fade-up" data-aos-duration="1000">
+
+
+          {/* ═══ LEFT (Chỉ hiện trên Desktop) ═══ */}
+          <div className="hidden lg:flex lg:w-[45%] p-8 bg-gradient-to-b from-primary-50/50 to-white flex-col relative z-10 border-r border-gray-100">
+
+
+            {/* Back */}
             <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-primary-700 font-bold border border-primary-200 bg-white rounded-full px-3.5 py-1.5 w-fit mb-6 hover:bg-primary-50 transition-all shadow-sm" data-aos="fade-right" data-aos-delay="100">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
               Trang chủ
             </Link>
 
-            {/* Headline - Trượt ngang nối tiếp */}
-            <h1 className="text-3xl lg:text-3xl font-black leading-tight text-gray-900 mb-2" data-aos="fade-right" data-aos-delay="200">
+
+            {/* Headline */}
+            <h1 className="text-3xl lg:text-4xl font-black leading-tight text-gray-900 mb-2" data-aos="fade-right" data-aos-delay="200">
               Khởi đầu
               <span className="block bg-gradient-to-r from-primary-600 to-secondary-500 bg-clip-text text-transparent italic">
                 Hành Trình Tình Yêu
               </span>
               <span className="block">Cùng AI.</span>
             </h1>
-            <p className="text-gray-500 font-medium text-xs leading-relaxed mb-6 max-w-sm" data-aos="fade-right" data-aos-delay="300">
+            <p className="text-gray-500 font-medium text-[13px] leading-relaxed mb-6 max-w-sm" data-aos="fade-right" data-aos-delay="300">
               Trải nghiệm kết đôi sang trọng — nơi AI thấu hiểu trái tim để tìm những tâm hồn đồng điệu.
             </p>
 
-            {/* Feature cards - Trượt lên lần lượt */}
+
+            {/* Feature cards */}
             <div className="grid grid-cols-2 gap-3 mb-6 relative z-10">
               {[
                 {
@@ -135,25 +131,29 @@ const Register = () => {
               ))}
             </div>
 
-            {/* Photo — Phóng to nhẹ nhàng */}
+
+            {/* Photo */}
             <div className="flex-1 rounded-2xl overflow-hidden shadow-inner ring-1 ring-black/5 min-h-[160px] relative mt-auto" data-aos="zoom-in" data-aos-delay="600">
               <img src="/images/LandingPage/Couple.png" alt="Couple" className="absolute inset-0 w-full h-full object-cover object-top" />
             </div>
           </div>
 
+
           {/* ═══ RIGHT — Form ═══ */}
-          <div className="lg:w-[55%] flex flex-col bg-white">
-            <div className="px-6 lg:px-10 py-8 lg:py-10 flex-1 flex flex-col">
-              
-              {/* Tiêu đề form - Trượt từ phải sang */}
-              <div className="mb-6 text-center" data-aos="fade-left" data-aos-delay="300">
-                <h2 className="text-xl font-black text-pink-600">Tạo tài khoản mới</h2>
-                <p className="text-black-100 font-medium text-xs mt-1 italic">Bắt đầu câu chuyện tình yêu ngay hôm nay 💕</p>
+          <div className="w-full lg:w-[55%] flex flex-col bg-white">
+            <div className="px-5 sm:px-8 lg:px-10 py-8 lg:py-10 flex-1 flex flex-col">
+
+
+              {/* Tiêu đề form */}
+              <div className="mb-6 text-center" data-aos="fade-left" data-aos-delay="100">
+                <h2 className="text-2xl sm:text-3xl font-black text-pink-600">Tạo tài khoản mới</h2>
+                <p className="text-gray-500 font-medium text-[13px] mt-1.5 italic">Bắt đầu câu chuyện tình yêu ngay hôm nay 💕</p>
               </div>
+
 
               {/* Error */}
               {(error || validationError) && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
+                <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
                   <svg className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
                   </svg>
@@ -161,8 +161,9 @@ const Register = () => {
                 </div>
               )}
 
-              {/* Nguyên cụm Form - Trượt từ phải sang (Đợi tiêu đề xuất hiện xong) */}
-              <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col" data-aos="fade-left" data-aos-delay="500">
+
+              {/* Nguyên cụm Form */}
+              <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col" data-aos="fade-left" data-aos-delay="200">
                 <div className="space-y-3.5">
                   {/* Username */}
                   <div>
@@ -174,6 +175,7 @@ const Register = () => {
                     </div>
                   </div>
 
+
                   {/* Email */}
                   <div>
                     <label htmlFor="email" className={labelCls}>Email</label>
@@ -184,6 +186,7 @@ const Register = () => {
                     </div>
                   </div>
 
+
                   {/* Password */}
                   <div>
                     <label htmlFor="password" className={labelCls}>Mật khẩu</label>
@@ -193,11 +196,12 @@ const Register = () => {
                         value={formData.password} onChange={handleChange} placeholder="••••••••"
                         className={`${inputCls} pr-10`} required minLength={6} />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 transition-colors">
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 focus:outline-none transition-colors p-1">
                         {showPassword ? <EyeOff /> : <EyeOpen />}
                       </button>
                     </div>
                   </div>
+
 
                   {/* Confirm */}
                   <div>
@@ -208,25 +212,27 @@ const Register = () => {
                         value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••"
                         className={`${inputCls} pr-10`} required minLength={6} />
                       <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 transition-colors">
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 focus:outline-none transition-colors p-1">
                         {showConfirm ? <EyeOff /> : <EyeOpen />}
                       </button>
                     </div>
                   </div>
                 </div>
 
+
                 {/* Agree */}
-                <div className="flex items-start gap-2 pt-1">
+                <div className="flex items-start gap-2 pt-2">
                   <input type="checkbox" id="agree" name="agree" checked={formData.agree} onChange={handleChange}
                     className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-primary-600 cursor-pointer flex-shrink-0" required />
-                  <label htmlFor="agree" className="text-[12px] text-gray-600 font-medium select-none leading-relaxed">
+                  <label htmlFor="agree" className="text-[12px] sm:text-[13px] text-gray-600 font-medium select-none leading-relaxed">
                     Tôi đồng ý với{' '}
                     <Link to="#" className="text-primary-600 font-bold hover:underline">Điều khoản</Link>{' '}và{' '}
                     <Link to="#" className="text-primary-600 font-bold hover:underline">Chính sách bảo mật</Link>.
                   </label>
                 </div>
 
-                <div className="mt-auto pt-4 space-y-3">
+
+                <div className="mt-auto pt-5 space-y-4">
                   {/* Submit */}
                   <button type="submit" disabled={isLoading}
                     className="w-full h-11 rounded-full bg-gradient-to-r from-primary-600 to-primary-500 text-white text-sm font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 transition-all duration-200">
@@ -235,17 +241,19 @@ const Register = () => {
                       : 'Đăng ký ngay'}
                   </button>
 
+
                   {/* Divider */}
                   <div className="flex items-center gap-3">
                     <div className="h-px flex-1 bg-gray-200" />
-                    <p className="text-[11px] font-bold text-gray-500 tracking-widest whitespace-nowrap">Hoặc đăng ký bằng</p>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Hoặc đăng ký bằng</p>
                     <div className="h-px flex-1 bg-gray-200" />
                   </div>
 
+
                   {/* Social */}
                   <div className="grid grid-cols-2 gap-3">
-                    <button type="button" onClick={handleGoogleRegister}
-                      className="h-10 rounded-full border border-gray-200 bg-white text-[13px] text-gray-800 font-bold hover:bg-gray-50 hover:border-gray-300 inline-flex items-center justify-center gap-2 transition-all">
+                    <button type="button" onClick={() => window.location.href = `${getApiUrl()}/api/auth/google`}
+                      className="h-11 rounded-full border border-gray-200 bg-white text-[13px] text-gray-800 font-bold hover:bg-gray-50 hover:border-gray-300 inline-flex items-center justify-center gap-2 transition-all shadow-sm">
                       <svg className="w-4 h-4" viewBox="0 0 24 24">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57C21.36 18.5 22.56 15.6 22.56 12.25z" />
                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -254,8 +262,8 @@ const Register = () => {
                       </svg>
                       Google
                     </button>
-                    <button type="button" onClick={handleFacebookRegister}
-                      className="h-10 rounded-full border border-gray-200 bg-white text-[13px] text-gray-800 font-bold hover:bg-gray-50 hover:border-gray-300 inline-flex items-center justify-center gap-2 transition-all">
+                    <button type="button" onClick={() => window.location.href = `${getApiUrl()}/api/auth/facebook`}
+                      className="h-11 rounded-full border border-gray-200 bg-white text-[13px] text-gray-800 font-bold hover:bg-gray-50 hover:border-gray-300 inline-flex items-center justify-center gap-2 transition-all shadow-sm">
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#1877F2"><path d="M22.675 0h-21.35C.592 0 0 .592 0 1.326v21.348C0 23.408.592 24 1.325 24h11.495v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.408 24 22.674V1.326C24 .592 23.408 0 22.675 0" /></svg>
                       Facebook
                     </button>
@@ -265,10 +273,12 @@ const Register = () => {
             </div>
           </div>
 
+
         </div>
       </main>
     </div>
   );
 };
+
 
 export default Register;
