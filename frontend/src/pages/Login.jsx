@@ -15,10 +15,9 @@ const Login = () => {
   const [emailError, setEmailError] = useState('');
 
   const getApiUrl = () => {
-    if (import.meta.env.PROD) {
-      return import.meta.env.VITE_API_URL || '';
-    }
-    return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+    if (!import.meta.env.PROD) return 'http://localhost:5000';
+    return '';
   };
 
   const validateEmail = (email) => {
@@ -60,12 +59,20 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     const API_URL = getApiUrl();
-    window.location.href = `${API_URL}/api/auth/google`;
+    if (!API_URL) {
+      alert('Vui lòng cấu hình VITE_API_URL để sử dụng đăng nhập Google');
+      return;
+    }
+    window.location.href = `${API_URL}/auth/google`;
   };
 
   const handleFacebookLogin = () => {
     const API_URL = getApiUrl();
-    window.location.href = `${API_URL}/api/auth/facebook`;
+    if (!API_URL) {
+      alert('Vui lòng cấu hình VITE_API_URL để sử dụng đăng nhập Facebook');
+      return;
+    }
+    window.location.href = `${API_URL}/auth/facebook`;
   };
 
   return (

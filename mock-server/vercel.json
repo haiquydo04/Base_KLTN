@@ -1,9 +1,0 @@
-{
-  "name": "loveai-mock-server",
-  "version": 2,
-  "buildCommand": "",
-  "installCommand": "npm install",
-  "framework": null,
-  "regions": ["sin1"],
-  "outputDirectory": "."
-}

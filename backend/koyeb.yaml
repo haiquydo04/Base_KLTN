@@ -1,0 +1,17 @@
+name: dating-app-api
+region: fra
+runtime:
+  build_command: npm install
+  start_command: npm start
+  env_vars:
+    - key: NODE_ENV
+      value: production
+ports:
+  - port: 5000
+    protocol: tcp
+resources:
+  plan: starter
+health_check:
+  path: /api/health
+  interval: 10
+  timeout: 5

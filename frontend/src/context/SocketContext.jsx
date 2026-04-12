@@ -5,16 +5,18 @@ import { useAuthStore } from '../store/authStore';
 const SocketContext = createContext(null);
 
 const getSocketUrl = () => {
-  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  const host = window.location.host;
-  
-  // Production: use external backend URL from env or current origin
-  if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || `${protocol}//${host}`;
+  // Ưu tiên VITE_API_URL
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
-  
-  // Development: use local backend
-  return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  // Development fallback
+  if (!import.meta.env.PROD) {
+    return 'http://localhost:5000';
+  }
+
+  // Production: dùng relative path (Vercel rewrite)
+  return '';
 };
 
 export const SocketProvider = ({ children }) => {
@@ -25,27 +27,31 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (token) {
       const socketUrl = getSocketUrl();
-      const newSocket = io(socketUrl, {
+
+      const socketOptions = {
         auth: { token },
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-      });
+        withCredentials: true, // Quan trọng cho cookie-based auth
+      };
+
+      const newSocket = io(socketUrl, socketOptions);
 
       newSocket.on('connect', () => {
-        console.log('Socket connected');
+        console.log('[Socket] Connected');
         setIsConnected(true);
       });
 
-      newSocket.on('disconnect', () => {
-        console.log('Socket disconnected');
+      newSocket.on('disconnect', (reason) => {
+        console.log('[Socket] Disconnected:', reason);
         setIsConnected(false);
       });
 
       newSocket.on('connect_error', (error) => {
-        console.error('Socket connection error:', error);
+        console.error('[Socket] Connection error:', error.message);
       });
 
       setSocket(newSocket);
