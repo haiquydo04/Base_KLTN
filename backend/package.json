@@ -6,7 +6,10 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "dev:clean": "npm run kill-port && npm run dev",
+    "kill-port": "npx kill-port 5000",
+    "dev:nodemon": "npx nodemon src/index.js"
   },
   "keywords": [
     "dating",
@@ -38,6 +41,8 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "axios": "^1.14.0"
+    "axios": "^1.14.0",
+    "kill-port": "^2.0.1",
+    "nodemon": "^3.0.2"
   }
 }

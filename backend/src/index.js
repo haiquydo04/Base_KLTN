@@ -5,7 +5,7 @@ import { Server } from 'socket.io';
 import mongoose from 'mongoose';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import session from 'express-session';
+
 import cookieSession from 'cookie-session';
 
 import config from './config/index.js';
@@ -22,46 +22,75 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const httpServer = createServer(app);
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: config.frontendUrl,
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
-});
+// ===========================================
+// SERVER STATE - Tránh chạy nhiều instance
+// ===========================================
+let isServerRunning = false;
+let server = null;
 
-app.use(cors({
-  origin: config.frontendUrl,
-  credentials: true
-}));
+// ===========================================
+// CORS CONFIG - Hỗ trợ nhiều origins
+// ===========================================
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (config.allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    if (!config.isProduction) {
+      return callback(null, true);
+    }
+
+    console.warn(`[CORS] Blocked origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
+
+const io = new Server(httpServer, {
+  cors: corsOptions
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Cookie session for OAuth
-app.use(cookieSession({
-  name: 'dating-session',
-  keys: [config.jwtSecret],
-  maxAge: 24 * 60 * 60 * 1000 // 24 hours
-}));
-
-// Initialize passport
+app.use(cookieSession(config.cookie));
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Middleware để skip passport session cho non-OAuth routes
+// Nhưng vấn đề là passport.session() đã chạy rồi...
+
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// ===========================================
+// HEALTH CHECK
+// ===========================================
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    env: config.nodeEnv,
+    serverRunning: isServerRunning
+  });
 });
 
+// ===========================================
+// API ROUTES
+// ===========================================
+console.log('[Routes] Registering authRoutes at /api/auth');
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
-// Mount interest routes BEFORE userRoutes to avoid /:id conflict
-app.use('/api', interestRoutes); // PB07: /api/tags, /api/users/interests
-app.use('/api', safetyRoutes); // /api/report, /api/block
-app.use('/api', discoveryRoutes); // /api/discovery, /api/update-location
-app.use('/api/users', userRoutes); // Must be after interestRoutes to avoid /users/interests being caught by /:id
+app.use('/api', interestRoutes);
+app.use('/api', safetyRoutes);
+app.use('/api', discoveryRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/match', matchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/v1/profiles', profileRoutes);
@@ -70,23 +99,77 @@ app.use('/api/profile', userProfileRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-// Initialize socket first
 initializeSocket(io);
-
-// Attach io to app for access in controllers
 app.set('io', io);
 
+// ===========================================
+// GRACEFUL SHUTDOWN
+// ===========================================
+const gracefulShutdown = (signal) => {
+  console.log(`\n[${signal}] Shutting down gracefully...`);
+
+  if (server) {
+    server.close(() => {
+      console.log('[Server] HTTP server closed');
+      mongoose.connection.close(false, () => {
+        console.log('[MongoDB] Connection closed');
+        process.exit(0);
+      });
+    });
+  } else {
+    mongoose.connection.close(false, () => {
+      process.exit(0);
+    });
+  }
+
+  // Force exit sau 10s
+  setTimeout(() => {
+    console.error('[Server] Forced exit after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// ===========================================
+// START SERVER
+// ===========================================
 const startServer = async () => {
+  // Ngăn chạy nhiều instance
+  if (isServerRunning) {
+    console.warn('[Server] Already running, skipping...');
+    return;
+  }
+
   try {
     await mongoose.connect(config.mongodbUri);
-    console.log('Connected to MongoDB');
+    console.log(`[${config.nodeEnv}] Connected to MongoDB`);
 
-    httpServer.listen(config.port, () => {
+    server = httpServer.listen(config.port, () => {
+      isServerRunning = true;
       console.log(`Server running on port ${config.port}`);
       console.log(`Environment: ${config.nodeEnv}`);
+      console.log(`Allowed Origins: ${config.allowedOrigins.join(', ')}`);
     });
+
+    // Xử lý lỗi khi port đã dùng
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${config.port} is already in use!`);
+        console.log('💡 Try:');
+        console.log('   1. Check running processes: netstat -ano | findstr :' + config.port);
+        console.log('   2. Kill process: npx kill-port ' + config.port);
+        console.log('   3. Or change PORT in .env');
+        process.exit(1);
+      } else {
+        console.error('[Server] Error:', error);
+        process.exit(1);
+      }
+    });
+
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
+    console.error('[MongoDB] Failed to connect:', error.message);
     process.exit(1);
   }
 };
@@ -94,39 +177,3 @@ const startServer = async () => {
 startServer();
 
 export { app, httpServer, io };
-/*
-GIẢI THÍCH FILE
-=====================
-
-Mục đích:
-File này là entry point chính của ứng dụng Express.
-Khởi tạo server, kết nối database, cấu hình middleware và routes.
-
-Cấu hình chính:
-- Express app và HTTP server
-- Socket.io server với CORS configuration
-- Kết nối MongoDB qua Mongoose
-- Static files cho uploads
-- API routes và error handling
-
-Middleware được sử dụng:
-- cors: Cho phép cross-origin requests từ frontend
-- express.json(): Parse JSON body
-- express.urlencoded(): Parse URL encoded body
-- express.static(): Serve static files từ /uploads
-
-Routes:
-- /api/auth: Authentication (login, register, logout)
-- /api/users: User management
-- /api/match: Match/Like functionality
-- /api/messages: Chat/Messages
-
-Luồng hoạt động:
-Start Server → Connect MongoDB → Initialize Socket → Listen on Port
-
-Ghi chú:
-File này được chạy bằng lệnh: npm start hoặc node src/index.js
-Health check endpoint: GET /api/health
-Socket.io được khởi tạo sau khi app sẵn sàng để handle connections.
-*/
-

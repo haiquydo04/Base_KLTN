@@ -1,0 +1,39 @@
+name: dating-app-api
+region: fra
+runtime:
+  build_command: npm install
+  start_command: npm start
+  env_vars:
+    - key: NODE_ENV
+      value: production
+    - key: PORT
+      value: 5000
+    - key: MONGODB_URI
+      from_secret: mongodb-uri
+    - key: JWT_SECRET
+      from_secret: jwt-secret
+    - key: GOOGLE_CLIENT_ID
+      from_secret: google-client-id
+    - key: GOOGLE_CLIENT_SECRET
+      from_secret: google-client-secret
+    - key: GOOGLE_CALLBACK_URL
+      from_secret: google-callback-url
+    - key: FRONTEND_URL
+      from_secret: frontend-url
+    - key: ALLOWED_ORIGINS
+      from_secret: allowed-origins
+    - key: CLOUDINARY_CLOUD_NAME
+      from_secret: cloudinary-cloud-name
+    - key: CLOUDINARY_API_KEY
+      from_secret: cloudinary-api-key
+    - key: CLOUDINARY_API_SECRET
+      from_secret: cloudinary-api-secret
+ports:
+  - port: 5000
+    protocol: tcp
+resources:
+  plan: starter
+health_check:
+  path: /api/health
+  interval: 10
+  timeout: 5

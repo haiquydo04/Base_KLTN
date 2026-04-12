@@ -13,6 +13,7 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+!*.example
 
 # Uploads
 uploads/
@@ -43,3 +44,4 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+.gitnexus
