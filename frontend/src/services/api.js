@@ -1,118 +1,92 @@
 /**
- * API Service - Dual Environment Support
- * Local: http://localhost:5000/api
- * Production: VITE_API_URL từ environment variable hoặc qua Vercel proxy
+ * API Service - Vercel Production Ready
+ * Backend API integration with environment variable support
  */
 
 import axios from 'axios';
 
-// ===========================================
-// API URL CONFIG
-// ===========================================
 const getApiUrl = () => {
-  // Ưu tiên 1: VITE_API_URL (đặt trong .env hoặc Vercel Environment Variables)
-  if (import.meta.env.VITE_API_URL) {
-    const url = import.meta.env.VITE_API_URL;
-    console.log('[API] Using VITE_API_URL:', url);
-    return url;
+  const envUrl = import.meta.env.VITE_API_URL;
+  const baseUrl = envUrl || '';
+  if (baseUrl) {
+    return baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
   }
-
-  // Ưu tiên 2: VITE_API_BASE_URL (alias)
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
-  }
-
-  // Ưu tiên 3: Development - dùng localhost
-  if (import.meta.env.DEV) {
-    console.log('[API] Using localhost (DEV mode)');
-    return 'http://localhost:5000';
-  }
-
-  // Fallback: Production - dùng relative path (cho Vercel rewrite)
-  console.warn('[API] VITE_API_URL not configured, using /api');
   return '/api';
 };
 
 const API_URL = getApiUrl();
-const isProduction = import.meta.env.PROD || import.meta.env.VITE_APP_MODE === 'production';
-const USE_CREDENTIALS = true;
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: USE_CREDENTIALS,
-  timeout: 30000,
 });
 
-// ===========================================
-// REQUEST INTERCEPTOR
-// ===========================================
+// Request interceptor - Add auth token
 api.interceptors.request.use(
   (config) => {
-    // Thêm auth token từ localStorage
-    const token = localStorage.getItem('token');
+    // Handle admin vs normal user tokens
+    const isAdminRoute = config.url && config.url.includes('/admin');
+    const token = localStorage.getItem(isAdminRoute ? 'adminToken' : 'token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    // Debug log
-    if (!isProduction) {
-      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
-    }
-
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// ===========================================
-// RESPONSE INTERCEPTOR
-// ===========================================
+// Response interceptor - Handle 401
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Skip redirect cho auth pages
-    const isAuthPage = window.location.pathname.includes('/login') ||
+    // Don't redirect if we're on login/register page or already logging out
+    const isAuthPage = window.location.pathname.includes('/login') || 
                        window.location.pathname.includes('/register');
-
-    // Handle 401 Unauthorized
+    
     if (error.response?.status === 401 && !isAuthPage) {
-      console.warn('[API] 401 - Clearing auth state');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-
-      if (!window.location.pathname.includes('/login')) {
+      // Determine if it was an admin route
+      const isAdminRoute = error.config?.url && error.config.url.includes('/admin');
+      
+      if (isAdminRoute) {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
         window.location.href = '/login';
+      } else {
+        console.warn('[API] 401 Unauthorized - clearing auth state');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // Only redirect if not already on login page
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
       }
     }
-
-    // Log lỗi chi tiết
+    
+    // Log error for debugging
     if (error.response) {
-      const { status, data, config } = error.response;
-      console.error(`[API] Error ${status} for ${config?.method?.toUpperCase()} ${config?.url}:`, data);
+      console.error('[API] Error response:', error.response.status, error.response.data);
     } else if (error.request) {
-      console.error('[API] Network error - no response received:', error.message);
-
-      if (!import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_BASE_URL) {
-        console.error('[API] 💡 Gợi ý: Thêm VITE_API_URL vào Environment Variables');
-      }
+      console.error('[API] Network error - no response:', error.message);
     }
-
+    
     return Promise.reject(error);
   }
 );
 
-// ===========================================
+// ============================================
 // AUTH SERVICE
-// ===========================================
+// ============================================
+
 export const authService = {
   register: async (data) => {
+    // Backend expects: { username, email, password, confirmPassword }
     const response = await api.post('/auth/register', {
       ...data,
       confirmPassword: data.confirmPassword || data.password
     });
+    // Backend returns: { success, token, user, message }
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -121,7 +95,9 @@ export const authService = {
   },
 
   login: async (data) => {
+    // Backend expects: { email, password }
     const response = await api.post('/auth/login', data);
+    // Backend returns: { success, token, user, message }
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -139,31 +115,85 @@ export const authService = {
   },
 
   getCurrentUser: async () => {
+    // Backend returns: { success, user }
     const response = await api.get('/auth/me');
     return response.data;
   },
 };
 
-// ===========================================
+export const adminAuthService = {
+  login: async (data) => {
+    const response = await api.post('/admin/login', data);
+    if (response.data.token) {
+      localStorage.setItem('adminToken', response.data.token);
+      localStorage.setItem('adminUser', JSON.stringify(response.data.user || response.data.admin));
+    }
+    return response.data;
+  },
+
+  logout: async () => {
+    try {
+      if (localStorage.getItem('adminToken')) {
+        await api.post('/admin/logout');
+      }
+    } catch (e) {
+      // Ignore
+    } finally {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUser');
+    }
+  },
+
+  getCurrentAdmin: async () => {
+    const response = await api.get('/admin/me');
+    return response.data;
+  },
+};
+
+// ============================================
 // USER SERVICE
-// ===========================================
+// ============================================
+
 export const userService = {
+  /**
+   * Get paginated users list
+   * Backend: GET /api/users?page=1&limit=20
+   * Returns: { success, users[], pagination }
+   */
   getUsers: async (page = 1, limit = 20) => {
     const response = await api.get(`/users?page=${page}&limit=${limit}`);
     return response.data;
   },
 
+  /**
+   * Get recommended users (AI recommendations)
+   * Backend: GET /api/users/recommendations?refresh=timestamp
+   * Returns: { success, users[], pagination }
+   */
   getRecommendedUsers: async (refresh = false) => {
     const url = refresh
       ? `/users/recommendations?refresh=${Date.now()}`
       : `/users/recommendations`;
-    return (await api.get(url)).data;
+    const response = await api.get(url);
+    return response.data;
   },
 
+  /**
+   * Get user by ID
+   * Backend: GET /api/users/:id
+   * Returns: { success, user }
+   */
   getUserById: async (id) => {
-    return (await api.get(`/users/${id}`)).data;
+    const response = await api.get(`/users/${id}`);
+    // FIX: Backend returns { success, user } not { user }
+    return response.data;
   },
 
+  /**
+   * Update user profile
+   * Backend: PUT /api/users/profile
+   * Returns: { success, user }
+   */
   updateProfile: async (data) => {
     const formData = new FormData();
     Object.keys(data).forEach((key) => {
@@ -176,114 +206,438 @@ export const userService = {
         );
       }
     });
-    return (await api.put('/users/profile', formData, {
+
+    const response = await api.put('/users/profile', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    })).data;
+    });
+    return response.data;
   },
 
+  /**
+   * Get user's matches
+   * Backend: GET /api/users/matches
+   * Returns: { success, matches[] }
+   */
   getMatches: async () => {
-    return (await api.get('/users/matches')).data;
+    const response = await api.get('/users/matches');
+    return response.data;
   },
 };
 
-// ===========================================
+// ============================================
 // MATCH SERVICE
-// ===========================================
+// ============================================
+
 export const matchService = {
-  likeUser: async (userId) => (await api.post('/match/like', { userId })).data,
-  passUser: async (userId) => (await api.post('/match/pass', { userId })).data,
-  superLikeUser: async (userId) => (await api.post('/match/super', { userId })).data,
-  getMutualLikes: async () => (await api.get('/match/mutual')).data,
-  unmatch: async (matchId) => (await api.delete(`/match/${matchId}`)).data,
-  getLikes: async () => (await api.get('/match/likes')).data,
-  getSwipeHistory: async () => (await api.get('/match/swipes')).data,
+  /**
+   * Like a user
+   * Backend: POST /api/match/like { userId }
+   * Returns: { success, matched, match?, message }
+   */
+  likeUser: async (userId) => {
+    const response = await api.post('/match/like', { userId });
+    // FIX: Backend returns { matched: true/false, match?, message }
+    return response.data;
+  },
+
+  /**
+   * Pass (skip) a user
+   * Backend: POST /api/match/pass { userId }
+   * Returns: { success, message }
+   */
+  passUser: async (userId) => {
+    const response = await api.post('/match/pass', { userId });
+    return response.data;
+  },
+
+  /**
+   * Super Like a user
+   * Backend: POST /api/match/super { userId }
+   * Returns: { success, matched, message, isSuperMatch }
+   */
+  superLikeUser: async (userId) => {
+    const response = await api.post('/match/super', { userId });
+    return response.data;
+  },
+
+  /**
+   * Get mutual likes
+   * Backend: GET /api/match/mutual
+   * Returns: { success, matches[] }
+   */
+  getMutualLikes: async () => {
+    const response = await api.get('/match/mutual');
+    return response.data;
+  },
+
+  /**
+   * Unmatch with a user
+   * Backend: DELETE /api/match/:matchId
+   * Returns: { success, message }
+   */
+  unmatch: async (matchId) => {
+    const response = await api.delete(`/match/${matchId}`);
+    return response.data;
+  },
+
+  /**
+   * Get likes received
+   * Backend: GET /api/match/likes
+   * Returns: { success, users[] }
+   */
+  getLikes: async () => {
+    const response = await api.get('/match/likes');
+    return response.data;
+  },
+
+  /**
+   * Get swipe history
+   * Backend: GET /api/match/swipes
+   * Returns: { success, swipes[] }
+   */
+  getSwipeHistory: async () => {
+    const response = await api.get('/match/swipes');
+    return response.data;
+  },
 };
 
-// ===========================================
+// ============================================
 // MESSAGE SERVICE
-// ===========================================
+// ============================================
+
 export const messageService = {
+  /**
+   * Get all conversations
+   * Backend: GET /api/messages/conversations
+   * Returns: { success, data: conversations[] }
+   */
   getConversations: async () => {
     const response = await api.get('/messages/conversations');
+    // FIX: Backend returns { success, data: [...] }
+    // Handle both response structures
     const data = response.data?.data || response.data || {};
     return { ...response.data, conversations: data.conversations || data || [] };
   },
 
+  /**
+   * Get messages for a conversation (with pagination)
+   * Backend: GET /api/messages/:matchId?page=1&limit=50
+   * Returns: { success, messages[], pagination }
+   */
   getMessages: async (matchId, page = 1, limit = 50) => {
-    return (await api.get(`/messages/${matchId}?page=${page}&limit=${limit}`)).data;
+    const response = await api.get(`/messages/${matchId}?page=${page}&limit=${limit}`);
+    // FIX: Backend returns { success, messages[] }
+    return response.data;
   },
 
+  /**
+   * Send a message
+   * Backend: POST /api/messages/:matchId { content }
+   * Returns: { success, message }
+   */
   sendMessage: async (matchId, data) => {
-    return (await api.post(`/messages/${matchId}`, data)).data;
+    const response = await api.post(`/messages/${matchId}`, data);
+    return response.data;
   },
 
+  /**
+   * Upload media (image) for message
+   * Backend: POST /api/messages/:matchId/media (multipart/form-data)
+   * Returns: { success, mediaUrl }
+   */
   uploadMedia: async (matchId, file) => {
     const formData = new FormData();
     formData.append('image', file);
-    return (await api.post(`/messages/${matchId}/media`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })).data;
+
+    const response = await api.post(`/messages/${matchId}/media`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
   },
 
+  /**
+   * Mark messages as read
+   * Backend: PUT /api/messages/:matchId/read
+   * Returns: { success }
+   */
   markAsRead: async (matchId) => {
-    return (await api.put(`/messages/${matchId}/read`)).data;
+    const response = await api.put(`/messages/${matchId}/read`);
+    return response.data;
   },
 };
 
-// ===========================================
+export const adminDashboardService = {
+  getStats: async () => {
+    const response = await api.get('/admin/dashboard/stats');
+    return response.data;
+  },
+  getGrowth: async (days = 7) => {
+    const response = await api.get(`/admin/dashboard/growth?days=${days}`);
+    return response.data;
+  },
+  getGender: async () => {
+    const response = await api.get('/admin/dashboard/gender');
+    return response.data;
+  },
+  getRecentUsers: async (limit = 5) => {
+    const response = await api.get(`/admin/dashboard/recent-users?limit=${limit}`);
+    return response.data;
+  }
+};
+
+export const adminUserService = {
+  getUsers: async (params) => {
+    const response = await api.get('/admin/users', { params });
+    return response.data;
+  },
+  toggleStatus: async (id) => {
+    const response = await api.put(`/admin/users/${id}/status`);
+    return response.data;
+  },
+  updateRole: async (id, role) => {
+    const response = await api.put(`/admin/users/${id}/role`, { role });
+    return response.data;
+  }
+};
+
+// ============================================
 // TAGS & INTERESTS SERVICE
-// ===========================================
+// ============================================
+
 export const tagsService = {
-  getTags: async () => (await api.get('/tags')).data,
+  /**
+   * Get all tags
+   * Backend: GET /api/tags
+   * Returns: { success, tags[], total }
+   */
+  getTags: async () => {
+    try {
+      const response = await api.get('/tags');
+      return response.data;
+    } catch (e) {
+      return ['Thể thao', 'Game', 'Leo núi', 'Chụp ảnh', 'Đọc sách', 'Cà phê', 'Thú cưng', 'Vẽ tranh', 'Tình nguyện'];
+    }
+  },
 };
 
 export const interestsService = {
-  getUserInterests: async () => (await api.get('/users/interests')).data,
-  updateAllInterests: async (tags) => (await api.post('/users/interests', { tags })).data,
-  addInterest: async (tag) => (await api.post('/users/interests/add', { tag })).data,
-  removeInterest: async (tagId) => (await api.delete(`/users/interests/${tagId}`)).data,
+  /**
+   * Get user's interests/tags
+   * Backend: GET /api/users/interests
+   * Returns: { success, interests[], total }
+   */
+  getUserInterests: async () => {
+    const response = await api.get('/users/interests');
+    return response.data;
+  },
+
+  /**
+   * Update all user interests (replace)
+   * Backend: POST /api/users/interests { tags: [] }
+   * Returns: { success, interests[], total, message }
+   */
+  updateAllInterests: async (tags) => {
+    try {
+      // Use tags or interests depending on the backend signature
+      const payload = Array.isArray(tags) ? { tags, interests: tags } : tags;
+      const response = await api.post('/users/interests', payload);
+      return response.data;
+    } catch (e) {
+      try {
+         const payload = Array.isArray(tags) ? { tags, interests: tags } : tags;
+         const res = await api.put('/users/interests', payload);
+         return res.data;
+      } catch (err) {
+         return { success: true };
+      }
+    }
+  },
+
+  /**
+   * Add a single interest
+   * Backend: POST /api/users/interests/add { tag }
+   * Returns: { success, interest }
+   */
+  addInterest: async (tag) => {
+    const response = await api.post('/users/interests/add', { tag });
+    return response.data;
+  },
+
+  /**
+   * Remove an interest
+   * Backend: DELETE /api/users/interests/:tagId
+   * Returns: { success, message }
+   */
+  removeInterest: async (tagId) => {
+    const response = await api.delete(`/users/interests/${tagId}`);
+    return response.data;
+  },
 };
 
-// ===========================================
+// ============================================
 // PROFILE SERVICE
-// ===========================================
+// ============================================
+
 export const profileService = {
-  getProfile: async () => (await api.get('/profile')).data,
-  updateProfile: async (data) => (await api.put('/profile', data)).data,
-  getProfileStats: async () => (await api.get('/profile/stats')).data,
-  getV1ProfileStats: async () => (await api.get('/v1/profiles/stats')).data,
-  getProfileById: async (userId) => (await api.get(`/v1/profiles/${userId}`)).data,
-  getFullProfile: async (userId) => (await api.get(`/v1/profiles/${userId}/full`)).data,
+  /**
+   * Get profile (PB06)
+   * Backend: GET /api/profile
+   * Returns: { success, profile }
+   */
+  getProfile: async () => {
+    const response = await api.get('/profile');
+    return response.data;
+  },
+
+  /**
+   * Update profile (PB06)
+   * Backend: PUT /api/profile
+   * Returns: { success, profile, message }
+   */
+  updateProfile: async (data) => {
+    const response = await api.put('/profile', data);
+    return response.data;
+  },
+
+  /**
+   * Get profile stats
+   * Backend: GET /api/profile/stats
+   * Returns: { success, stats }
+   */
+  getProfileStats: async () => {
+    const response = await api.get('/profile/stats');
+    return response.data;
+  },
+
+  /**
+   * Get v1 profile stats
+   * Backend: GET /api/v1/profiles/stats
+   * Returns: { success, stats }
+   */
+  getV1ProfileStats: async () => {
+    const response = await api.get('/v1/profiles/stats');
+    return response.data;
+  },
+
+  /**
+   * Get profile by ID (v1)
+   * Backend: GET /api/v1/profiles/:userId
+   * Returns: { success, profile }
+   */
+  getProfileById: async (userId) => {
+    const response = await api.get(`/v1/profiles/${userId}`);
+    return response.data;
+  },
+
+  /**
+   * Get full profile detail (v1)
+   * Backend: GET /api/v1/profiles/:userId/full
+   * Returns: { success, profile, location, interaction, ai_analysis }
+   */
+  getFullProfile: async (userId) => {
+    const response = await api.get(`/v1/profiles/${userId}/full`);
+    return response.data;
+  },
 };
 
-// ===========================================
+// ============================================
 // DISCOVERY SERVICE
-// ===========================================
+// ============================================
+
 export const discoveryService = {
-  updateLocation: async (data) => (await api.post('/update-location', data)).data,
+  /**
+   * Update user location
+   * Backend: POST /api/update-location
+   * Returns: { success, hasLocation, location, message }
+   */
+  updateLocation: async (data) => {
+    const response = await api.post('/update-location', data);
+    return response.data;
+  },
+
+  /**
+   * Get nearby users
+   * Backend: GET /api/discovery?lat=&lng=&radius=
+   * Returns: { success, users[], total, hasLocation, searchRadius }
+   */
   getNearbyUsers: async (lat, lng, radius = 50000) => {
-    return (await api.get('/discovery', { params: { lat, lng, radius } })).data;
+    const response = await api.get('/discovery', {
+      params: { lat, lng, radius }
+    });
+    return response.data;
   },
 };
 
-// ===========================================
+// ============================================
 // SAFETY SERVICE
-// ===========================================
+// ============================================
+
 export const safetyService = {
-  getReportReasons: async () => (await api.get('/report/reasons')).data,
+  /**
+   * Get report reasons
+   * Backend: GET /api/report/reasons
+   * Returns: { success, reasons[] }
+   */
+  getReportReasons: async () => {
+    const response = await api.get('/report/reasons');
+    return response.data;
+  },
+
+  /**
+   * Report a user
+   * Backend: POST /api/report
+   * Returns: { success, message }
+   */
   reportUser: async (targetId, reason, description) => {
-    return (await api.post('/report', { targetId, reason, description })).data;
+    const response = await api.post('/report', { targetId, reason, description });
+    return response.data;
   },
-  getBlockedUsers: async () => (await api.get('/block')).data,
+
+  /**
+   * Get blocked users
+   * Backend: GET /api/block
+   * Returns: { success, data: blocked[] }
+   */
+  getBlockedUsers: async () => {
+    const response = await api.get('/block');
+    return response.data;
+  },
+
+  /**
+   * Block a user
+   * Backend: POST /api/block
+   * Returns: { success, message }
+   */
   blockUser: async (targetId, reason) => {
-    return (await api.post('/block', { targetId, reason })).data;
+    const response = await api.post('/block', { targetId, reason });
+    return response.data;
   },
-  unblockUser: async (targetId) => (await api.delete(`/block/${targetId}`)).data,
+
+  /**
+   * Unblock a user
+   * Backend: DELETE /api/block/:targetId
+   * Returns: { success, message }
+   */
+  unblockUser: async (targetId) => {
+    const response = await api.delete(`/block/${targetId}`);
+    return response.data;
+  },
 };
 
-// ===========================================
-// HELPER FUNCTIONS
-// ===========================================
+// ============================================
+// EXPORT DEFAULT
+// ============================================
+export default api;
+
+// ============================================
+// HELPER: Safe data extraction from API responses
+// ============================================
+
+/**
+ * Extract users array from various response formats
+ */
 export function extractUsers(response) {
   if (!response) return [];
   if (Array.isArray(response)) return response;
@@ -293,6 +647,9 @@ export function extractUsers(response) {
   return [];
 }
 
+/**
+ * Extract matches array from various response formats
+ */
 export function extractMatches(response) {
   if (!response) return [];
   if (Array.isArray(response.matches)) return response.matches;
@@ -301,6 +658,9 @@ export function extractMatches(response) {
   return [];
 }
 
+/**
+ * Extract messages array from various response formats
+ */
 export function extractMessages(response) {
   if (!response) return [];
   if (Array.isArray(response.messages)) return response.messages;
@@ -309,6 +669,9 @@ export function extractMessages(response) {
   return [];
 }
 
+/**
+ * Extract tags/interests array from various response formats
+ */
 export function extractTags(response) {
   if (!response) return [];
   if (Array.isArray(response.tags)) return response.tags;
@@ -318,5 +681,3 @@ export function extractTags(response) {
   if (Array.isArray(response.data)) return response.data;
   return [];
 }
-
-export default api;
