@@ -411,24 +411,6 @@ async function seedDatabase() {
     await UserTag.insertMany(userTags);
     console.log(`✅ Đã tạo ${userTags.length} user tags!\n`);
 
-    // FIX: Cập nhật usageCount cho Tags
-    console.log('🔄 Đang cập nhật usageCount cho Tags...');
-    for (const tag of tags) {
-      let count = 0;
-      if (tag.category === 'interest') {
-        count = userTags.filter(ut => ut.tagId.toString() === tag._id.toString()).length;
-      } else if (tag.category === 'occupation') {
-        count = users.filter(u => u.occupation === tag.name).length;
-      } else if (tag.category === 'location') {
-        count = users.filter(u => u.locationText === tag.name).length;
-      }
-      
-      if (count > 0) {
-        await Tag.findByIdAndUpdate(tag._id, { usageCount: count });
-      }
-    }
-    console.log('✅ Đã cập nhật xong usageCount cho các danh mục!\n');
-
     // Tạo Swipes
     console.log('💗 Đang tạo Swipes...');
     const swipes = generateSwipes(users, 100);
