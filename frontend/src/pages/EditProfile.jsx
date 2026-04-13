@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { userService, tagsService, interestsService } from '../services/api';
 import Navbar from '../components/Navbar';
-import InterestsTab from '../components/InterestsTab';
+import InterestsProfile from '../components/InterestsProfile';
 
 /* ── Sidebar nav items ── */
 const NAV_ITEMS = [
@@ -157,29 +157,33 @@ const EditProfile = () => {
     <div style={{ minHeight: '100vh', background: BG, display: 'flex', flexDirection: 'column' }}>
       <Navbar />
 
-      <div className="flex-1 flex flex-col lg:flex-row max-w-[1200px] mx-auto w-full px-4 sm:px-5 py-6 pb-16 gap-6 lg:gap-8 box-border">
+      <div className="flex-1 flex flex-col lg:flex-row max-w-[1200px] mx-auto w-full px-4 sm:px-5 py-6 pb-16 gap-6 lg:gap-8 box-border relative">
 
-        {/* ══ LEFT SIDEBAR ══ */}
-        <div className="w-full lg:w-[220px] shrink-0">
-          <div style={{ ...CARD, padding: '20px 12px' }}>
-            <p style={{ fontSize: 10, fontWeight: 700, color: '#f43f5e', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4, padding: '0 8px' }}>
+        {/* ══ LEFT SIDEBAR (STICKY & FLAT) ══ */}
+        <div className="w-full lg:w-[240px] shrink-0 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:border-r lg:border-rose-200/60 lg:pr-5 overflow-y-auto scrollbar-hide">
+          <div style={{ padding: '10px 0' }}>
+            <p style={{ fontSize: 10, fontWeight: 800, color: '#f43f5e', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4, padding: '0 12px' }}>
               Cài đặt
             </p>
-            <p style={{ fontSize: 10, color: '#c4b5fd', marginBottom: 16, padding: '0 8px' }}>
+            <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 16, padding: '0 12px' }}>
               Quản lý trải nghiệm của bạn
             </p>
-            <nav className="flex flex-row lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+            <nav className="flex flex-row lg:flex-col gap-1.5 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
               {NAV_ITEMS.map(item => (
                 <button key={item.id} onClick={() => setActiveNav(item.id)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px',
-                    borderRadius: 10, border: 'none', cursor: 'pointer', textAlign: 'left',
-                    fontSize: 12, fontWeight: activeNav === item.id ? 700 : 500,
-                    background: activeNav === item.id ? 'linear-gradient(135deg,#fce7f3,#fdf4ff)' : 'transparent',
-                    color: activeNav === item.id ? '#f43f5e' : '#9ca3af',
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                    borderRadius: 14, border: 'none', cursor: 'pointer', textAlign: 'left',
+                    fontSize: 13, fontWeight: activeNav === item.id ? 700 : 600,
+                    background: activeNav === item.id ? '#fff' : 'transparent',
+                    color: activeNav === item.id ? '#e11d48' : '#6b7280',
+                    boxShadow: activeNav === item.id ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
                     transition: 'all .2s',
-                  }}>
-                  <span style={{ fontSize: 14 }}>{item.icon}</span>
+                  }}
+                  onMouseEnter={e => { if (activeNav !== item.id) e.currentTarget.style.color = '#1f2937' }}
+                  onMouseLeave={e => { if (activeNav !== item.id) e.currentTarget.style.color = '#6b7280' }}
+                >
+                  <span style={{ fontSize: 16 }}>{item.icon}</span>
                   <span className="whitespace-nowrap">{item.label}</span>
                 </button>
               ))}
@@ -351,18 +355,7 @@ const EditProfile = () => {
           )}
 
           {activeNav === 'interests' && (
-            <InterestsTab 
-              selectedInterests={selectedInterests}
-              setSelectedInterests={setSelectedInterests}
-              popularTags={popularTags}
-              newTagInput={newTagInput}
-              setNewTagInput={setNewTagInput}
-              error={error}
-              setError={setError}
-              success={success}
-              loading={loading}
-              handleSubmit={handleSubmit}
-            />
+            <InterestsProfile />
           )}
 
         </div>
