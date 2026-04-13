@@ -1,6 +1,4 @@
 import Tag from '../../../models/Tag.js';
-import User from '../../../models/User.js';
-import UserTag from '../../../models/UserTag.js';
 import AdminLog from '../../../models/AdminLog.js';
 import tagSyncService from '../../../services/tagSync.service.js';
 
