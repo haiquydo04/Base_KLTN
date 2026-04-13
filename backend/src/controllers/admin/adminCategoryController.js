@@ -126,6 +126,7 @@ export const deleteCategory = async (req, res) => {
     }
 
     // Use usageCount from Tag model (which should be synced)
+    const tagName = tag.name;
     const inUseCount = tag.usageCount || 0;
 
     if (inUseCount > 0) {
