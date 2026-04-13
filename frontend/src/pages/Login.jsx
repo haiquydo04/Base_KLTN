@@ -3,10 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGoogle, faFacebookF } from '@fortawesome/free-brands-svg-icons';
 import { useAuthStore } from '../store/authStore';
+import { useAdminAuthStore } from '../store/adminAuthStore';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login, isLoading, error, clearError } = useAuthStore();
+  const adminStore = useAdminAuthStore();
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -15,18 +18,17 @@ const Login = () => {
   const [emailError, setEmailError] = useState('');
 
   const getApiUrl = () => {
-    if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-    if (!import.meta.env.PROD) return 'http://localhost:5000';
-    return '';
+    if (import.meta.env.PROD) {
+      return import.meta.env.VITE_API_URL || '';
+    }
+    return import.meta.env.VITE_API_URL || 'http://localhost:5000';
   };
 
   const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email.trim()) {
+    if (!email) {
       return 'Email là bắt buộc';
-    }
-    if (!emailRegex.test(email)) {
-      return 'Email không đúng định dạng';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      return 'Email không hợp lệ';
     }
     return '';
   };
@@ -37,6 +39,7 @@ const Login = () => {
       setEmailError('');
     }
     if (error) clearError();
+    if (adminStore.error && adminStore.clearError) adminStore.clearError();
   };
 
   const handleSubmit = async (e) => {
@@ -46,10 +49,15 @@ const Login = () => {
       setEmailError(emailErr);
       return;
     }
+
     try {
-      const result = await login(formData);
-      
-      if (result?.token && result?.user) {
+      const data = await login(formData);
+
+      if (data?.user?.role === 'admin' || data?.user?.role === 'Admin') {
+        // Log in to admin store to setup admin log & token
+        await adminStore.login(formData);
+        navigate('/admin/dashboard');
+      } else {
         navigate('/discover');
       }
     } catch (err) {
@@ -59,34 +67,26 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     const API_URL = getApiUrl();
-    if (!API_URL) {
-      alert('Vui lòng cấu hình VITE_API_URL để sử dụng đăng nhập Google');
-      return;
-    }
-    window.location.href = `${API_URL}/auth/google`;
+    window.location.href = `${API_URL}/api/auth/google`;
   };
 
   const handleFacebookLogin = () => {
     const API_URL = getApiUrl();
-    if (!API_URL) {
-      alert('Vui lòng cấu hình VITE_API_URL để sử dụng đăng nhập Facebook');
-      return;
-    }
-    window.location.href = `${API_URL}/auth/facebook`;
+    window.location.href = `${API_URL}/api/auth/facebook`;
   };
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-primary-50">
       {/* Background shape */}
-      <div 
-        className="hidden lg:block absolute top-0 right-0 w-1/2 h-full bg-primary-100/60" 
-        data-aos="fade-left" 
+      <div
+        className="hidden lg:block absolute top-0 right-0 w-1/2 h-full bg-primary-100/60"
+        data-aos="fade-left"
         data-aos-duration="1500"
       />
 
       <div className="relative min-h-screen px-5 lg:px-8 py-5">
         <div className="max-w-7xl mx-auto min-h-[calc(100vh-4rem)] flex flex-col">
-          
+
           {/* Header */}
           <header className="flex items-start justify-between" data-aos="fade-down" data-aos-duration="800">
             <div>
@@ -103,27 +103,27 @@ const Login = () => {
             <section className="hidden lg:block">
               <h1 
                 className="text-4xl sm:text-5xl font-black text-gray-900 leading-[0.98] max-w-lg"
-                data-aos="fade-right" 
+                data-aos="fade-right"
                 data-aos-duration="1000"
               >
                 Chào mừng bạn
                 <span className="block">quay lại với </span>
                 <span className="text-primary-600">LoveAI</span>
               </h1>
-              
-              <p 
+
+              <p
                 className="mt-4 text-lg text-gray-600 max-w-lg leading-relaxed"
-                data-aos="fade-right" 
-                data-aos-duration="1000" 
+                data-aos="fade-right"
+                data-aos-duration="1000"
                 data-aos-delay="100"
               >
                 Nơi tình yêu được kết nối bởi sự thấu hiểu của trí tuệ nhân tạo và sự tinh tế của cảm xúc.
               </p>
 
-              <div 
+              <div
                 className="mt-7 flex items-center gap-3"
-                data-aos="fade-right" 
-                data-aos-duration="1000" 
+                data-aos="fade-right"
+                data-aos-duration="1000"
                 data-aos-delay="200"
               >
                 <div className="flex -space-x-3">
@@ -172,11 +172,13 @@ const Login = () => {
                     <path d="M12 21s-7-4.35-9.2-8.1C1.3 10.2 2.3 6.8 5.6 5.6c2.1-.8 4.2.1 5.4 1.8 1.2-1.7 3.3-2.6 5.4-1.8 3.3 1.2 4.3 4.6 2.8 7.3C19 16.65 12 21 12 21z" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-black text-gray-900 text-center mb-5">Đăng nhập</h2>
+                <h2 className="text-2xl font-black text-gray-900 text-center mb-5">
+                  Đăng nhập
+                </h2>
 
-                {error && (
+                {(error || adminStore.error) && (
                   <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-                    <p className="text-red-600 text-sm text-center">{error}</p>
+                    <p className="text-red-600 text-sm text-center">{error || adminStore.error}</p>
                   </div>
                 )}
 
@@ -193,7 +195,7 @@ const Login = () => {
                         </svg>
                       </span>
                       <input
-                        type="email"
+                        type="text"
                         id="email"
                         name="email"
                         value={formData.email}
@@ -312,7 +314,7 @@ const Login = () => {
               <button type="button" className="hover:text-gray-600 transition-colors">Trợ giúp</button>
             </div>
           </footer>
-          
+
         </div>
       </div>
     </div>
