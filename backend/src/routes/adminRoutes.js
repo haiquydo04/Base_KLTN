@@ -45,10 +45,12 @@ import {
   addCategory,
   updateCategory,
   deleteCategory,
-  toggleCategoryStatus
+  toggleCategoryStatus,
+  syncCategories
 } from '../controllers/admin/adminCategoryController.js';
 
 router.get('/categories', authenticate, authorizeAdmin, getCategories);
+router.post('/categories/sync', authenticate, authorizeAdmin, syncCategories);
 router.post('/categories', authenticate, authorizeAdmin, addCategory);
 router.put('/categories/:id', authenticate, authorizeAdmin, updateCategory);
 router.delete('/categories/:id', authenticate, authorizeAdmin, deleteCategory);

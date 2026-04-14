@@ -1,7 +1,6 @@
-import Tag from '../../models/Tag.js';
-import User from '../../models/User.js';
-import UserTag from '../../models/UserTag.js';
-import AdminLog from '../../models/AdminLog.js';
+import Tag from '../../../models/Tag.js';
+import AdminLog from '../../../models/AdminLog.js';
+import tagSyncService from '../../../services/tagSync.service.js';
 
 export const getCategories = async (req, res) => {
   try {
@@ -124,21 +123,9 @@ export const deleteCategory = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy danh mục' });
     }
 
-    let inUseCount = 0;
+    // Use usageCount from Tag model (which should be synced)
     const tagName = tag.name;
-
-    // Check constraint logic
-    if (tag.category === 'interest') {
-      inUseCount = await User.countDocuments({ interests: tagName });
-      const userTagCount = await UserTag.countDocuments({ tagId: tag._id });
-      inUseCount += userTagCount;
-    } else if (tag.category === 'occupation') {
-      inUseCount = await User.countDocuments({ occupation: tagName });
-    } else if (tag.category === 'location') {
-      inUseCount = await User.countDocuments({ location: tagName });
-    } else {
-      inUseCount = await UserTag.countDocuments({ tagId: tag._id });
-    }
+    const inUseCount = tag.usageCount || 0;
 
     if (inUseCount > 0) {
       return res.status(400).json({ 
@@ -185,5 +172,27 @@ export const toggleCategoryStatus = async (req, res) => {
   } catch (error) {
     console.error('Lỗi khi đổi trạng thái danh mục:', error);
     res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+};
+
+export const syncCategories = async (req, res) => {
+  try {
+    const adminId = req.user._id;
+
+    const results = await tagSyncService.syncAllTagsUsage();
+
+    await AdminLog.logAction(adminId, 'SYNC_CATEGORIES_USAGE', {
+      description: `Đã thực hiện đồng bộ hóa lượt sử dụng danh mục. Cập nhật ${results.updated}/${results.total} mục.`,
+      deviceInfo: req.headers['user-agent'] || 'Unknown'
+    });
+
+    res.json({
+      success: true,
+      message: `Đồng bộ hoàn tất. Đã cập nhật ${results.updated} danh mục có dữ liệu sai lệch.`,
+      results
+    });
+  } catch (error) {
+    console.error('Lỗi khi đồng bộ danh mục:', error);
+    res.status(500).json({ success: false, message: 'Lỗi server khi đồng bộ dữ liệu' });
   }
 };
