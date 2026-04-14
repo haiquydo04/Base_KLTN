@@ -69,4 +69,17 @@ router.get('/dashboard/growth', authenticate, authorizeAdmin, getUserGrowth);
 router.get('/dashboard/gender', authenticate, authorizeAdmin, getGenderDistribution);
 router.get('/dashboard/recent-users', authenticate, authorizeAdmin, getRecentUsers);
 
+// --- Route Quản trị Phiên làm việc (PB23) ---
+import {
+  getSessions,
+  getSessionStats,
+  killSession,
+  bulkKillSessions
+} from '../controllers/admin/adminSessionController.js';
+
+router.get('/sessions', authenticate, authorizeAdmin, getSessions);
+router.get('/sessions/stats', authenticate, authorizeAdmin, getSessionStats);
+router.post('/sessions/bulk-kill', authenticate, authorizeAdmin, bulkKillSessions);
+router.post('/sessions/:id/kill', authenticate, authorizeAdmin, killSession);
+
 export default router;
