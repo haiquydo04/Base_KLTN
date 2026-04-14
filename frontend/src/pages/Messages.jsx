@@ -483,17 +483,15 @@ const Messages = () => {
   // RENDER
   // ============================================
   return (
-    /* THÊM 1: Đổi class container chính. Hỗ trợ hiển thị đúng trên iOS Safari (100dvh) và có padding dưới đáy */
-    <div className="h-[100dvh] w-full bg-white overflow-hidden flex flex-col pb-[64px] md:pb-0">
+    <div className="h-screen w-full bg-white overflow-hidden">
       <Navbar />
 
-      <main className="flex-1 w-full relative overflow-hidden">
+      <main className="h-[calc(100vh-80px)] w-full">
         <div className="flex h-full w-full">
 
           {/* ========== LEFT: Conversations List ========== */}
-          {/* THÊM 2: Ẩn cột này trên Mobile nếu đã có selectedConversationId */}
           <section 
-            className={`w-full md:w-[340px] lg:w-[360px] shrink-0 border-r border-gray-300 bg-white flex-col ${selectedConversationId ? 'hidden md:flex' : 'flex'}`}
+            className="w-full md:w-[340px] lg:w-[360px] shrink-0 border-r border-gray-300 bg-white flex flex-col"
           >
             <div className="h-full flex flex-col">
               {/* Header */}
@@ -607,28 +605,15 @@ const Messages = () => {
           </section>
 
           {/* ========== RIGHT: Chat Area ========== */}
-          {/* THÊM 3: Ẩn cột này trên Mobile nếu CHƯA chọn ai */}
           <section 
-            className={`flex-1 min-w-0 h-full bg-white flex-col ${selectedConversationId ? 'flex' : 'hidden md:flex'}`}
+            className="flex-1 min-w-0 h-full bg-white"
           >
             <div className="h-full flex flex-col overflow-hidden">
 
               {/* Chat Header */}
               {activeConversation ? (
                 <div className="shrink-0 px-4 py-3 border-b border-gray-300 bg-white flex items-center justify-between">
-                  <div className="flex items-center gap-2 md:gap-3">
-                    
-                    {/* THÊM 4: Nút Back trên Mobile */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedConversationId(null)}
-                      className="md:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-
+                  <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-rose-200">
                       {activeConversation.userId?.avatar ? (
                         <img src={activeConversation.userId.avatar} alt="" className="w-full h-full object-cover" />
@@ -702,7 +687,7 @@ const Messages = () => {
                   </div>
                 </div>
               ) : (
-                <div className="shrink-0 px-4 py-3 border-b border-gray-300 bg-white hidden md:block">
+                <div className="shrink-0 px-4 py-3 border-b border-gray-300 bg-white">
                   <p className="text-sm text-gray-500">Chọn cuộc trò chuyện để bắt đầu</p>
                 </div>
               )}
@@ -949,7 +934,7 @@ const Messages = () => {
                         className="w-6 h-6 rounded-full bg-white text-gray-500 hover:text-gray-700 border border-rose-100"
                         title="Cancel"
                       >
-                        ✕
+                        ×
                       </button>
                       <button
                         type="button"

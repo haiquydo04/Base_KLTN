@@ -402,6 +402,29 @@ export const adminUserService = {
   }
 };
 
+export const adminCategoryService = {
+  getCategories: async (params) => {
+    const response = await api.get('/admin/categories', { params });
+    return response.data;
+  },
+  createCategory: async (data) => {
+    const response = await api.post('/admin/categories', data);
+    return response.data;
+  },
+  updateCategory: async (id, data) => {
+    const response = await api.put(`/admin/categories/${id}`, data);
+    return response.data;
+  },
+  toggleStatus: async (id) => {
+    const response = await api.put(`/admin/categories/${id}/status`);
+    return response.data;
+  },
+  deleteCategory: async (id) => {
+    const response = await api.delete(`/admin/categories/${id}`);
+    return response.data;
+  }
+};
+
 // ============================================
 // TAGS & INTERESTS SERVICE
 // ============================================
