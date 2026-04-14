@@ -23,6 +23,7 @@ import Safety from './pages/Safety';
 import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import UserManagement from './pages/UserManagement';
+import CategoryManagement from './pages/CategoryManagement';
 
 const ProtectedRoute = ({ children }) => {
   const { token, isLoading, user } = useAuthStore();
@@ -114,6 +115,14 @@ function App() {
               element={
                 <AdminProtectedRoute>
                   <UserManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/categories" 
+              element={
+                <AdminProtectedRoute>
+                  <CategoryManagement />
                 </AdminProtectedRoute>
               } 
             />
