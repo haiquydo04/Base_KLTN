@@ -3,6 +3,7 @@
  */
 
 import User from '../models/User.js';
+import UserSession from '../models/UserSession.js';
 import { hashPassword, comparePassword } from '../utils/hashPassword.js';
 import { generateToken } from '../utils/jwt.js';
 import { generateOTP, getOTPExpiry } from '../utils/generateOTP.js';
@@ -75,7 +76,7 @@ export const registerUser = async ({ username, email, password, confirmPassword 
   };
 };
 
-export const loginUser = async ({ email, password, username, facebookId, googleId }) => {
+export const loginUser = async ({ email, password, username, facebookId, googleId }, req = null) => {
   let user;
 
   if (email || username) {
@@ -111,6 +112,15 @@ export const loginUser = async ({ email, password, username, facebookId, googleI
 
   const token = generateToken(user._id);
 
+  // PB23: Tạo session record (nếu có req)
+  if (req) {
+    try {
+      await UserSession.createSession(user._id, token, req);
+    } catch (err) {
+      console.error('[Session] Failed to create session:', err.message);
+    }
+  }
+
   return { user: user.toJSON(), token };
 };
 
@@ -120,12 +130,22 @@ export const getCurrentUserById = async (userId) => {
   return { user };
 };
 
-export const logoutUser = async (userId) => {
+export const logoutUser = async (userId, token = null) => {
   const user = await User.findById(userId);
   if (user) {
     user.isOnline = false;
     await user.save({ validateBeforeSave: false });
   }
+
+  // PB23: Revoke session khi logout
+  if (token) {
+    try {
+      await UserSession.revokeByToken(token);
+    } catch (err) {
+      console.error('[Session] Failed to revoke session on logout:', err.message);
+    }
+  }
+
   return { success: true };
 };
 

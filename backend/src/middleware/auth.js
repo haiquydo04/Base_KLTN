@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import UserSession from '../models/UserSession.js';
 import config from '../config/index.js';
 
 export const authenticate = async (req, res, next) => {
@@ -19,6 +20,17 @@ export const authenticate = async (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, config.jwtSecret);
+
+      // ★ Kiểm tra session có bị revoke chưa (PB23 - Kill Session)
+      const isSessionValid = await UserSession.isTokenValid(token);
+      if (!isSessionValid) {
+        return res.status(401).json({
+          success: false,
+          message: 'Session has been revoked',
+          code: 'SESSION_REVOKED'
+        });
+      }
+
       req.user = await User.findById(decoded.id);
       
       if (!req.user) {
@@ -27,6 +39,9 @@ export const authenticate = async (req, res, next) => {
           message: 'User not found'
         });
       }
+
+      // Cập nhật lastActiveAt (không cần await, fire-and-forget)
+      UserSession.touchSession(token).catch(() => {});
 
       next();
     } catch (error) {

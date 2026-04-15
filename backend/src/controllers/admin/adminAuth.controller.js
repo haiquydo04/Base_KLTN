@@ -8,7 +8,7 @@ export const adminLogin = async (req, res, next) => {
     const identifier = email || username;
     const deviceInfo = req.headers['user-agent'] || 'Unknown Device';
 
-    const result = await authService.loginUser({ username: identifier, email: identifier, password });
+    const result = await authService.loginUser({ username: identifier, email: identifier, password }, req);
 
     if (result.error) {
       // 4.1 Kiểm tra tài khoản: Nếu sai Username hoặc Password -> "Thông tin đăng nhập không chính xác"
@@ -73,8 +73,9 @@ export const adminLogout = async (req, res, next) => {
       metadata: { ip: req.ip }
     });
 
-    // 2. Gọi service xử lý logic logout (cập nhật isOnline: false)
-    await authService.logoutUser(req.user._id);
+    // 2. Gọi service xử lý logic logout (cập nhật isOnline: false + revoke session)
+    const token = req.headers.authorization?.split(' ')[1] || null;
+    await authService.logoutUser(req.user._id, token);
 
     res.json({ success: true, message: 'Đăng xuất thành công' });
   } catch (error) {

@@ -17,3 +17,4 @@ export { default as AdminLog } from './AdminLog.js';
 export { default as Role } from './Role.js';
 export { default as UserRole } from './UserRole.js';
 export { default as UserProfile } from './UserProfile.js';
+export { default as UserSession } from './UserSession.js';
