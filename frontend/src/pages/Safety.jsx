@@ -1,4 +1,5 @@
 import Navbar from '../components/Navbar';
+import SidebarMenu from '../components/SidebarMenu';
 
 const Safety = () => {
   const BG = 'linear-gradient(180deg,#fff6f6 0%,#fff3f1 50%,#fff6f4 100%)';
@@ -11,11 +12,14 @@ const Safety = () => {
   const MUTED = '#8b6f6f';
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, display: 'flex', flexDirection: 'column' }}>
+    <div className="h-[100vh] w-screen overflow-hidden flex flex-col" style={{ background: BG }}>
       <Navbar />
 
-      <main style={{ flex: 1, padding: '28px 20px 60px' }}>
-        <div style={{ maxWidth: 980, margin: '0 auto' }}>
+      <div className="flex-1 flex flex-row overflow-hidden min-h-0 relative w-full">
+        <SidebarMenu />
+
+        <main className="flex-1 overflow-y-auto" style={{ padding: '28px 20px 60px', minWidth: 0 }}>
+          <div style={{ maxWidth: 980, margin: '0 auto' }}>
           <div style={{ textAlign: 'left', marginBottom: 26 }}>
             <p style={{ fontSize: 10, letterSpacing: 2, color: '#d65b5b', fontWeight: 700, marginBottom: 6 }}>
               TRUNG TÂM BẢO MẬT
@@ -136,6 +140,7 @@ const Safety = () => {
           </div>
         </div>
       </main>
+      </div>
     </div>
   );
 };

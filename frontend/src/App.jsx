@@ -24,6 +24,10 @@ import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import UserManagement from './pages/UserManagement';
 import CategoryManagement from './pages/CategoryManagement';
+import SessionManagement from './pages/SessionManagement';
+import CensorshipAndViolationManagement from './pages/CensorshipAndViolationManagement';
+import SystemParameterConfiguration from './pages/SystemParameterConfiguration';
+import SystemTrace from './pages/SystemTrace';
 
 const ProtectedRoute = ({ children }) => {
   const { token, isLoading, user } = useAuthStore();
@@ -123,6 +127,38 @@ function App() {
               element={
                 <AdminProtectedRoute>
                   <CategoryManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/sessions" 
+              element={
+                <AdminProtectedRoute>
+                  <SessionManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/ai" 
+              element={
+                <AdminProtectedRoute>
+                  <CensorshipAndViolationManagement />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/settings" 
+              element={
+                <AdminProtectedRoute>
+                  <SystemParameterConfiguration />
+                </AdminProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/trace" 
+              element={
+                <AdminProtectedRoute>
+                  <SystemTrace />
                 </AdminProtectedRoute>
               } 
             />

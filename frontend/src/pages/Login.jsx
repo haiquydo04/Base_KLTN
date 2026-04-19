@@ -98,10 +98,10 @@ const Login = () => {
           </header>
 
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 items-center py-4 lg:py-2 -mt-6 lg:-mt-16">
-            
-            {/* Left Column: Text & Avatars (Chỉ hiện trên Desktop) */}
-            <section className="hidden lg:block">
-              <h1 
+
+            {/* Left Column: Text & Avatars */}
+            <section>
+              <h1
                 className="text-4xl sm:text-5xl font-black text-gray-900 leading-[0.98] max-w-lg"
                 data-aos="fade-right"
                 data-aos-duration="1000"
@@ -148,14 +148,12 @@ const Login = () => {
             </section>
 
             {/* Right Column: Login Form */}
-            {/* Tăng lg:max-w-[36rem] để form rộng ra trên desktop */}
-            <section className="w-full max-w-[32rem] lg:max-w-[35rem] mx-auto lg:mx-0 lg:ml-auto lg:mr-2 px-1 sm:px-4">
-              {/* Giảm padding dọc (lg:py-8) và tăng padding ngang (lg:px-10) */}
-              <div 
-                className="bg-white rounded-[2rem] shadow-xl border border-primary-100 p-6 sm:p-8 lg:px-10 lg:py-8" 
-                data-aos="fade-up" 
-                data-aos-duration="1000" 
-                data-aos-delay="100"
+            <section className="w-full max-w-[32rem] mx-auto lg:mx-0 lg:ml-auto lg:mr-8 px-3 sm:px-4">
+              <div
+                className="bg-white rounded-[2rem] shadow-xl border border-primary-100 p-6 sm:p-6"
+                data-aos="fade-left"
+                data-aos-duration="1000"
+                data-aos-delay="300"
               >
                 <Link
                   to="/"
@@ -167,7 +165,7 @@ const Login = () => {
                   <span>Trang chủ</span>
                 </Link>
 
-                <div className="w-11 h-11 rounded-full bg-primary-100 text-primary-600 mx-auto mb-3 flex items-center justify-center mt-1">
+                <div className="w-11 h-11 rounded-full bg-primary-100 text-primary-600 mx-auto mb-4 flex items-center justify-center">
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 21s-7-4.35-9.2-8.1C1.3 10.2 2.3 6.8 5.6 5.6c2.1-.8 4.2.1 5.4 1.8 1.2-1.7 3.3-2.6 5.4-1.8 3.3 1.2 4.3 4.6 2.8 7.3C19 16.65 12 21 12 21z" />
                   </svg>
@@ -182,7 +180,6 @@ const Login = () => {
                   </div>
                 )}
 
-                {/* Giảm khoảng cách giữa các input (space-y-3.5) */}
                 <form onSubmit={handleSubmit} className="space-y-3.5">
                   <div>
                     <label htmlFor="email" className="block text-[11px] tracking-wide font-bold text-gray-500 uppercase mb-1.5">
@@ -206,7 +203,7 @@ const Login = () => {
                         required
                       />
                     </div>
-                    {emailError && <p className="text-red-500 text-sm mt-1.5">{emailError}</p>}
+                    {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
                   </div>
 
                   <div>
@@ -248,27 +245,24 @@ const Login = () => {
                     </div>
                   </div>
 
-                  {/* Quên mật khẩu căn sát lề phải */}
-                  <div className="flex justify-end pt-1">
+                  <button
+                    type="submit"
+                    disabled={isLoading || adminStore.isLoading}
+                    className="w-full h-11 rounded-full bg-gradient-to-r from-primary-600 to-primary-500 text-white text-base font-bold shadow-md hover:shadow-lg disabled:opacity-60"
+                  >
+                    {(isLoading || adminStore.isLoading) ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                  </button>
+
+                  <div className="flex justify-end">
                     <Link to="/forgot-password" className="text-[11px] font-semibold text-primary-600 hover:text-primary-700">
                       Quên mật khẩu?
                     </Link>
-                  </div>
-
-                  <div className="pt-1">
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full h-11 rounded-full bg-gradient-to-r from-primary-600 to-primary-500 text-white text-base font-bold shadow-md hover:shadow-lg disabled:opacity-60 transition-all hover:-translate-y-0.5"
-                    >
-                      {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-                    </button>
                   </div>
                 </form>
 
                 <div className="my-5 flex items-center gap-3">
                   <div className="h-px flex-1 bg-gray-200"></div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Hoặc tiếp tục với</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase">Hoặc tiếp tục với</p>
                   <div className="h-px flex-1 bg-gray-200"></div>
                 </div>
 
@@ -276,7 +270,7 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={handleGoogleLogin}
-                    className="h-11 rounded-full border border-gray-200 text-[13px] text-gray-700 font-bold hover:bg-gray-50 inline-flex items-center justify-center gap-2 transition-colors"
+                    className="h-10 rounded-full border border-gray-200 text-sm text-gray-700 font-semibold hover:bg-gray-50 inline-flex items-center justify-center gap-2"
                   >
                     <FontAwesomeIcon icon={faGoogle} className="text-base text-[#DB4437]" />
                     <span>Google</span>
@@ -284,14 +278,14 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={handleFacebookLogin}
-                    className="h-11 rounded-full border border-gray-200 text-[13px] text-gray-700 font-bold hover:bg-gray-50 inline-flex items-center justify-center gap-2 transition-colors"
+                    className="h-10 rounded-full border border-gray-200 text-sm text-gray-700 font-semibold hover:bg-gray-50 inline-flex items-center justify-center gap-2"
                   >
                     <FontAwesomeIcon icon={faFacebookF} className="text-base text-[#1877F2]" />
                     <span>Facebook</span>
                   </button>
                 </div>
 
-                <p className="mt-5 text-center text-[13px] text-gray-500">
+                <p className="mt-5 text-center text-xs text-gray-500">
                   Bạn chưa có tài khoản?{' '}
                   <Link to="/register" className="text-primary-600 font-bold hover:text-primary-700">
                     Đăng ký miễn phí
@@ -302,16 +296,16 @@ const Login = () => {
           </div>
 
           {/* Footer */}
-          <footer 
-            className="pt-0 -mt-2 lg:-mt-5 pb-4 flex flex-col sm:flex-row items-center justify-center lg:justify-between gap-3 text-xs text-gray-400"
-            data-aos="fade-up" 
-            data-aos-duration="800" 
-            data-aos-delay="200"
+          <footer
+            className="pt-0 -mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400"
+            data-aos="fade-up"
+            data-aos-duration="800"
+            data-aos-delay="400"
           >
             <div className="flex items-center gap-6 uppercase tracking-wide font-semibold">
-              <button type="button" className="hover:text-gray-600 transition-colors">Điều khoản</button>
-              <button type="button" className="hover:text-gray-600 transition-colors">Bảo mật</button>
-              <button type="button" className="hover:text-gray-600 transition-colors">Trợ giúp</button>
+              <button type="button" className="hover:text-gray-600">Điều khoản</button>
+              <button type="button" className="hover:text-gray-600">Bảo mật</button>
+              <button type="button" className="hover:text-gray-600">Trợ giúp</button>
             </div>
           </footer>
 

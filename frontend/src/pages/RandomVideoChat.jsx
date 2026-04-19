@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useSocket } from '../context/SocketContext';
 import Navbar from '../components/Navbar';
+import SidebarMenu from '../components/SidebarMenu';
 
 const RandomVideoChat = () => {
   const { user } = useAuthStore();
@@ -321,11 +322,14 @@ const RandomVideoChat = () => {
   const showLanding = status === 'idle' || status === 'searching';
 
   return (
-    <div className="min-h-screen" style={{ background: BG_PAGE }}>
+    <div className="h-[100vh] w-screen overflow-hidden flex flex-col" style={{ background: BG_PAGE }}>
       <Navbar />
 
-      <main className="pt-10 pb-12 px-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="flex-1 flex flex-row overflow-hidden min-h-0 relative w-full">
+        <SidebarMenu />
+
+        <main className="flex-1 overflow-y-auto pt-10 pb-12 px-4 w-full min-w-0">
+          <div className="max-w-4xl mx-auto">
           {showLanding && (
             <div className="text-center">
               <div className="flex items-center justify-center">
@@ -577,6 +581,7 @@ const RandomVideoChat = () => {
           )}
         </div>
       </main>
+      </div>
     </div>
   );
 };
